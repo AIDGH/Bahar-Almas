@@ -1,0 +1,19 @@
+:80 {
+	encode zstd gzip
+
+	@api path /api/v1/*
+	handle @api {
+		reverse_proxy api:4002
+	}
+
+	handle {
+		reverse_proxy web:3002
+	}
+
+	header {
+		-Server
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+}

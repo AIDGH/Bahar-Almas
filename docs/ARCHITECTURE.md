@@ -18,6 +18,22 @@ NestJS
 PostgreSQL
 ```
 
+## معماری استقرار
+
+Production روی یک ابرک Ubuntu 24.04 ابرآروان اجرا می‌شود. Caddy تنها ورودی عمومی است؛ Web، API و PostgreSQL پورت عمومی ندارند و روی Docker network داخلی با هم ارتباط دارند.
+
+```text
+Internet
+   ↓ :80 / :443
+Caddy
+   ├── /api/v1/* → NestJS :4002
+   └── /*         → Next.js :3002
+                         ↓
+                 PostgreSQL :5432
+```
+
+Branch `main` هر ۶۰ ثانیه از داخل سرور بررسی می‌شود. Commit تازه ابتدا Build می‌شود، Migrationهای Prisma را اجرا می‌کند و سپس Containerها را به‌روزرسانی می‌کند. Health Check API شرط ثبت SHA موفق است و File Lock از Deploy همزمان جلوگیری می‌کند.
+
 ## Frontend
 
 مسیر: `apps/web`

@@ -14,6 +14,8 @@ Burstهای چندآیتمی و Cooldown پس از گروه‌های بزرگ ب
 
 OTP با HMAC و Session Token با Hash ذخیره می‌شوند. Cookie در Production باید `Secure` باشد و HTTPS الزامی است.
 
+در استقرار Production فقط پورت‌های SSH، HTTP و HTTPS روی Host مجاز هستند. PostgreSQL، NestJS و Next.js داخل Docker network باقی می‌مانند؛ Secretها فقط در فایل Permission-limited سرور نگهداری می‌شوند و وارد Image یا Git نمی‌شوند. `OTP_DELIVERY_MODE=preview` صرفاً برای QA محدود است، چون نمایش کد در Browser جای ارسال امن پیامک را نمی‌گیرد.
+
 ## محدودیت‌های آگاهانه‌ی MVP
 
 هیچ بازی Browser-based کاملاً ضد Bot نیست. کاربر ماهر می‌تواند API و Schedule را مشاهده کند؛ هدف فعلی جلوگیری از Score جعلی ساده، Replay و دست‌کاری مستقیم عدد امتیاز است.

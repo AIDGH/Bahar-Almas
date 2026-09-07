@@ -51,6 +51,8 @@
 - رابط RTL و Mobile-first.
 - WebMCP خواندنی برای دریافت ده رکورد برتر در Browserهای پشتیبان.
 - README کوتاه انگلیسی شامل معرفی محصول و فهرست زبان‌ها و فناوری‌های اصلی، بدون جزئیات راه‌اندازی یا عملیات.
+- پیکربندی Production مبتنی بر Docker Compose برای Next.js، NestJS، PostgreSQL و Caddy؛
+- چرخه‌ی انتشار خودکار Server-side که Branch `main` را هر ۶۰ ثانیه بررسی و فقط پس از Build، Migration و Health Check موفق ثبت می‌کند؛
 
 اعتبارسنجی انجام‌شده:
 
@@ -65,14 +67,14 @@
 
 ```text
 Browser / Mobile
-      ↓
-Next.js Web (Canvas game + campaign UI)
-      ↓ /api/v1
-NestJS REST API
-      ↓
-Prisma ORM
-      ↓
-PostgreSQL
+      ↓ HTTP/HTTPS
+Caddy reverse proxy
+      ├── Next.js Web (Canvas game + campaign UI)
+      └── /api/v1 → NestJS REST API
+                         ↓
+                     Prisma ORM
+                         ↓
+                    PostgreSQL
 ```
 
 ساختار Repository:
@@ -83,6 +85,7 @@ Bahar-Almas/
 │   ├── web/
 │   └── api/
 ├── docs/
+├── deploy/
 ├── PROJECT_CONTEXT.md
 ├── docker-compose.yml
 ├── package.json
@@ -185,8 +188,13 @@ Web روی پورت ۳۰۰۲ و API روی پورت ۴۰۰۲ اجرا می‌ش�
 - تعریف سیاست نهایی شرکت‌کننده، جایزه، تعداد دفعات مجاز و بازه‌ی کمپین؛
 - افزودن IP/device risk signal و Rate Limit اشتراکی در صورت چند-instance شدن API؛
 - پایش خطا و داشبورد رفتارهای مشکوک؛
-- HTTPS، Domain، Backup و Runbook انتشار؛
+- اتصال Domain و فعال‌سازی HTTPS در Caddy؛
+- Backup خارج از ابرک برای PostgreSQL و تست Restore؛
 - تصمیم درباره‌ی نگهداری/حذف داده‌های موبایل پس از پایان کمپین.
 - بررسی Contract ابزار WebMCP در Browser دارای `document.modelContext`؛ محیط Preview فعلی امکان این اعتبارسنجی را اعلام نکرد.
 
 فهرست پیگیری: `docs/TODO.md`
+
+## ۱۱. استقرار
+
+ابرک Production ابرآروان با IP برابر `95.38.187.27` و Ubuntu 24.04 آماده شده است. برنامه در `/opt/bahar-almas` اجرا می‌شود و PostgreSQL فقط داخل Docker network قابل دسترسی است. جزئیات اتصال SSH، Containerها، انتشار خودکار، Environment، Domain و Backup در `docs/DEPLOYMENT.md` ثبت شده است.

@@ -1,0 +1,11 @@
+[Unit]
+Description=Deploy the latest Bahar Almas main branch
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/bahar-almas
+ExecStart=/opt/bahar-almas/deploy/update.sh
+TimeoutStartSec=0

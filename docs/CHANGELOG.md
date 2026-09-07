@@ -1,5 +1,13 @@
 # Changelog
 
+## ۲۰۲۶-۰۹-۰۷ — زیرساخت Production و Auto-deploy
+
+- افزودن Dockerfileهای مستقل Next.js و NestJS و Compose شامل PostgreSQL 17 و Caddy؛
+- خصوصی‌کردن پورت‌های Web، API و Database و قراردادن Caddy به‌عنوان تنها ورودی عمومی؛
+- افزودن اجرای Migration پیش از انتشار و Health Check پس از جایگزینی Containerها؛
+- افزودن Timer یک‌دقیقه‌ای Server-side برای دریافت خودکار Commitهای تازه‌ی Branch `main`؛
+- مستندسازی SSH، Environment، Domain، TLS، Backup و عملیات استقرار ابرک ابرآروان.
+
 ## ۲۰۲۶-۰۹-۰۷ — ساده‌سازی README
 
 - بازنویسی README به زبان انگلیسی و محدودکردن آن به معرفی کوتاه بازی و فناوری‌های استفاده‌شده؛

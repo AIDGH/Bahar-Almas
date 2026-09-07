@@ -15,13 +15,16 @@
 
 ## قبل از انتشار عمومی
 
+- [x] ساخت ابرک Ubuntu 24.04 ابرآروان برای Production؛
+- [x] افزودن Docker Compose، Reverse Proxy، Migration و چرخه‌ی Auto-deploy از Branch `main`؛
 - [ ] اتصال SMS Provider و خاموش‌کردن OTP Preview؛
 - [ ] تعریف Limit روزانه‌ی شرکت در کمپین؛
 - [ ] افزودن Edge Rate Limit/WAF؛
 - [ ] انتقال ثبت و سقف Pause از Client به Server برای نسخه‌ی جایزه‌دار؛
 - [ ] Load Test پایان بازی و Leaderboard؛
 - [ ] مانیتورینگ خطا و Audit رکوردهای مشکوک؛
-- [ ] HTTPS، Domain، Backup و Runbook؛
+- [ ] اتصال Domain و فعال‌سازی HTTPS؛
+- [ ] افزودن Backup خارج از ابرک برای PostgreSQL و تست Restore؛
 - [ ] Privacy policy و دوره‌ی نگهداری شماره موبایل؛
 - [ ] بررسی دستی رکوردهای برتر پیش از اعلام برنده.
 

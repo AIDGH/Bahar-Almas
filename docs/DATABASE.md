@@ -38,3 +38,9 @@ Database اصلی PostgreSQL و لایه‌ی دسترسی Prisma است.
 - ستون `points` امتیاز نهایی همان Hit پس از اعمال ضریب Combo معتبر سرور را نگه می‌دارد؛ `gestureId` فقط هنگام Finish پردازش می‌شود و در نسخه‌ی فعلی ذخیره نمی‌شود.
 
 Migration اولیه در `apps/api/prisma/migrations/20260904000000_init/migration.sql` قرار دارد.
+
+## نگهداری در Production
+
+PostgreSQL 17 در Container خصوصی و بدون Port binding روی Host اجرا می‌شود. داده روی Docker Volume دائمی `postgres_data` قرار دارد و Deploy برنامه Volume را حذف نمی‌کند. Migrationها پیش از به‌روزرسانی Containerهای Runtime با `prisma migrate deploy` اجرا می‌شوند.
+
+Snapshot هفتگی ابرک فقط لایه‌ی مکمل است. پیش از انتشار عمومی، Backup زمان‌بندی‌شده‌ی مستقل، انتقال نسخه‌ها به فضای خارج از همان ابرک و آزمایش Restore الزامی است.
