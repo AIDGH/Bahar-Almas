@@ -4,14 +4,15 @@
 
 - Provider: ابرآروان؛
 - Server: یک ابرک Ubuntu 24.04 با ۸ vCPU، رم ۱۶GB و دیسک ۷۵GB؛
-- Public IP: `95.38.187.27`؛
+- Public IP: مقدار عملیاتی خارج از Repository؛ در دستورها با `<SERVER_IP>` نمایش داده می‌شود؛
 - مسیر برنامه روی سرور: `/opt/bahar-almas`؛
-- Branch انتشار: `main`.
+- Branch انتشار: `main`؛
+- وضعیت: Web و API روی HTTP عمومی Health Check موفق دارند؛ PostgreSQL Migration اولیه اعمال شده و Timer انتشار فعال است.
 
 ## اتصال SSH
 
 ```bash
-ssh -i ~/.ssh/bahar_almas_arvan_ed25519 root@95.38.187.27
+ssh -i ~/.ssh/bahar_almas_arvan_ed25519 root@<SERVER_IP>
 ```
 
 فقط Public Key روی سرور قرار دارد. Private Key باید با Permission برابر `600` روی دستگاه توسعه باقی بماند.
@@ -68,11 +69,13 @@ systemctl start bahar-almas-update.service
 
 پیکربندی اولیه‌ی Caddy روی HTTP و IP انجام می‌شود. پس از مشخص‌شدن دامنه:
 
-1. رکورد DNS یا CDN به `95.38.187.27` متصل می‌شود؛
+1. رکورد DNS یا CDN به IP عمومی ابرک متصل می‌شود؛
 2. Site address در `deploy/Caddyfile` از `:80` به دامنه تغییر می‌کند؛
 3. `CORS_ORIGIN` به Origin نهایی HTTPS تغییر می‌کند؛
 4. Caddy گواهی TLS را دریافت می‌کند؛
 5. ورود، Cookie امن و WebOTP روی دامنه واقعی تست می‌شوند.
+
+تا قبل از HTTPS، آدرس IP فقط برای بررسی صفحه و Health Check مناسب است؛ Cookie امن ورود در حالت Production به HTTPS نیاز دارد.
 
 ## Backup
 

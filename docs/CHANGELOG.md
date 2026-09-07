@@ -7,6 +7,7 @@
 - افزودن اجرای Migration پیش از انتشار و Health Check پس از جایگزینی Containerها؛
 - نصب OpenSSL داخل Image سرویس API و تأمین URL غیرواقعی Build برای اجرای پایدار Prisma Generate؛
 - افزودن Timer یک‌دقیقه‌ای Server-side برای دریافت خودکار Commitهای تازه‌ی Branch `main`؛
+- نصب Docker روی ابرک، فعال‌سازی UFW، اجرای Migration اولیه و تأیید پاسخ عمومی Web و API؛
 - مستندسازی SSH، Environment، Domain، TLS، Backup و عملیات استقرار ابرک ابرآروان.
 
 ## ۲۰۲۶-۰۹-۰۷ — ساده‌سازی README

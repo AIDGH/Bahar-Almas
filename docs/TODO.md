@@ -17,6 +17,7 @@
 
 - [x] ساخت ابرک Ubuntu 24.04 ابرآروان برای Production؛
 - [x] افزودن Docker Compose، Reverse Proxy، Migration و چرخه‌ی Auto-deploy از Branch `main`؛
+- [x] اجرای اولین Migration و تأیید Health Check عمومی Web و API روی IP سرور؛
 - [ ] اتصال SMS Provider و خاموش‌کردن OTP Preview؛
 - [ ] تعریف Limit روزانه‌ی شرکت در کمپین؛
 - [ ] افزودن Edge Rate Limit/WAF؛

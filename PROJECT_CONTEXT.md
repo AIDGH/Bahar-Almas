@@ -18,7 +18,7 @@
 
 ## ۲. وضعیت فعلی
 
-وضعیت: **Core Gameplay MVP پیاده‌سازی‌شده و به‌صورت محلی Build/Test و End-to-end تأیید شده است**.
+وضعیت: **Core Gameplay MVP پیاده‌سازی شده، Build/Test محلی را گذرانده و نسخه‌ی Production آن روی ابرک ابرآروان با HTTP موقت فعال است**.
 
 موارد موجود:
 
@@ -198,4 +198,4 @@ Web روی پورت ۳۰۰۲ و API روی پورت ۴۰۰۲ اجرا می‌ش�
 
 ## ۱۱. استقرار
 
-ابرک Production ابرآروان با IP برابر `95.38.187.27` و Ubuntu 24.04 آماده شده است. برنامه در `/opt/bahar-almas` اجرا می‌شود و PostgreSQL فقط داخل Docker network قابل دسترسی است. جزئیات اتصال SSH، Containerها، انتشار خودکار، Environment، Domain و Backup در `docs/DEPLOYMENT.md` ثبت شده است.
+ابرک Production ابرآروان با Ubuntu 24.04 فعال است. نسخه‌ی `d106cc2` با Migration موفق و Health Check عمومی Web و API روی HTTP مستقر شد. برنامه در `/opt/bahar-almas` اجرا می‌شود، PostgreSQL فقط داخل Docker network قابل دسترسی است و Timer فعال Commitهای جدید `main` را هر ۶۰ ثانیه بررسی می‌کند. IP واقعی در مستندات عمومی Repository نگهداری نمی‌شود. جزئیات اتصال SSH، Containerها، انتشار خودکار، Environment، Domain و Backup در `docs/DEPLOYMENT.md` ثبت شده است.
