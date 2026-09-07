@@ -29,6 +29,7 @@
 - ثبت‌نام و ورود یکپارچه با شماره موبایل و OTP؛
 - نمایش کد OTP در حالت `preview` تا زمان اتصال سرویس پیامک؛
 - Session مبتنی بر Cookie از نوع HttpOnly؛
+- تنظیم صریح `AUTH_COOKIE_SECURE` برای حفظ Cookie امن روی HTTPS و امکان QA موقت روی IP و HTTP؛
 - بازی Canvas با Swipe/Pointer، حرکت بالستیک پیوسته و مورب، تایمر ۱ دقیقه‌ای، Score، صدا، افکت برش، نیمه‌شدن سیب‌زمینی/شنیسل/سمبوسه و Crumb Particle؛
 - HUD موبایل‌محور با لوگوی محصول کنار امتیاز، اعداد کارتونی نارنجی `#EE9F35` (کمی تیره‌تر و اشباع‌تر از مرجع `#F2B049`)، تایمر سمت راست و کنترل Pause/پایان زودهنگام؛
 - Pause واقعی بازی و تایمر با بودجه‌ی تجمعی حداکثر ۳۰ ثانیه؛
@@ -60,7 +61,7 @@
 - TypeScript برای Web و API بدون خطا؛
 - Lint بدون Error یا Warning؛
 - Build Production موفق برای NestJS و Next.js؛
-- ۱۱ تست واحد موفق برای Schedule نسخه‌بندی‌شده، Burst و فاصله‌ی بازیابی، سرعت/زاویه‌ی پرتاب، Combo scoring، افزایش سختی و Hit validation؛
+- ۱۳ تست واحد موفق برای Schedule نسخه‌بندی‌شده، Burst و فاصله‌ی بازیابی، سرعت/زاویه‌ی پرتاب، Combo scoring، افزایش سختی، Hit validation و تنظیم امن Cookie؛
 - تست واقعی OTP → Session → Game start → Server-validated finish → Leaderboard روی PostgreSQL محلی؛
 - حذف کامل داده‌ی آزمایشی پس از پایان تست.
 
@@ -190,6 +191,7 @@ Web روی پورت ۳۰۰۲ و API روی پورت ۴۰۰۲ اجرا می‌ش�
 - افزودن IP/device risk signal و Rate Limit اشتراکی در صورت چند-instance شدن API؛
 - پایش خطا و داشبورد رفتارهای مشکوک؛
 - اتصال Domain و فعال‌سازی HTTPS در Caddy؛
+- بازگرداندن `AUTH_COOKIE_SECURE=true` همزمان با فعال‌شدن HTTPS؛
 - Backup خارج از ابرک برای PostgreSQL و تست Restore؛
 - تصمیم درباره‌ی نگهداری/حذف داده‌های موبایل پس از پایان کمپین.
 - بررسی Contract ابزار WebMCP در Browser دارای `document.modelContext`؛ محیط Preview فعلی امکان این اعتبارسنجی را اعلام نکرد.

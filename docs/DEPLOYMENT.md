@@ -65,6 +65,8 @@ systemctl start bahar-almas-update.service
 
 تا زمان اتصال نجوا، `OTP_DELIVERY_MODE=preview` فقط برای QA محدود قابل استفاده است و نباید در انتشار عمومی باقی بماند.
 
+روی IP و HTTP موقت، `AUTH_COOKIE_SECURE=false` برای تست ورود لازم است. این استثنا فقط برای QA است و باید همزمان با فعال‌شدن دامنه و HTTPS به `true` تغییر کند.
+
 ## Domain و HTTPS
 
 پیکربندی اولیه‌ی Caddy روی HTTP و IP انجام می‌شود. پس از مشخص‌شدن دامنه:
@@ -73,9 +75,10 @@ systemctl start bahar-almas-update.service
 2. Site address در `deploy/Caddyfile` از `:80` به دامنه تغییر می‌کند؛
 3. `CORS_ORIGIN` به Origin نهایی HTTPS تغییر می‌کند؛
 4. Caddy گواهی TLS را دریافت می‌کند؛
-5. ورود، Cookie امن و WebOTP روی دامنه واقعی تست می‌شوند.
+5. `AUTH_COOKIE_SECURE=true` می‌شود؛
+6. ورود، Cookie امن و WebOTP روی دامنه واقعی تست می‌شوند.
 
-تا قبل از HTTPS، آدرس IP فقط برای بررسی صفحه و Health Check مناسب است؛ Cookie امن ورود در حالت Production به HTTPS نیاز دارد.
+تا قبل از HTTPS، آدرس IP فقط برای QA محدود مناسب است و Session Cookie آن عمداً بدون فلگ `Secure` تنظیم می‌شود. انتشار عمومی و ورود واقعی باید روی HTTPS و Cookie امن انجام شوند.
 
 ## Backup
 

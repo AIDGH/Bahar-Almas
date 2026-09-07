@@ -166,7 +166,7 @@ export class AuthService {
   setSessionCookie(response: Response, token: string, expiresAt: Date): void {
     response.cookie(SESSION_COOKIE, token, {
       httpOnly: true,
-      secure: this.config.get('NODE_ENV', { infer: true }) === 'production',
+      secure: this.config.get('AUTH_COOKIE_SECURE', { infer: true }),
       sameSite: 'lax',
       path: '/',
       expires: expiresAt,
@@ -176,7 +176,7 @@ export class AuthService {
   clearSessionCookie(response: Response): void {
     response.clearCookie(SESSION_COOKIE, {
       httpOnly: true,
-      secure: this.config.get('NODE_ENV', { infer: true }) === 'production',
+      secure: this.config.get('AUTH_COOKIE_SECURE', { infer: true }),
       sameSite: 'lax',
       path: '/',
     });

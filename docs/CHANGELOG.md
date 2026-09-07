@@ -1,5 +1,12 @@
 # Changelog
 
+## ۲۰۲۶-۰۹-۰۷ — رفع Session ورود روی IP موقت
+
+- جداکردن فلگ `Secure` کوکی Session از `NODE_ENV` با متغیر صریح `AUTH_COOKIE_SECURE`؛
+- فعال‌کردن امکان QA ورود و بازی روی IP و HTTP، بدون تغییر پیش‌فرض امن Production؛
+- افزودن تست مستقل برای Cookie موقت HTTP و Cookie امن HTTPS؛
+- ثبت الزام بازگرداندن Cookie امن همزمان با اتصال دامنه و HTTPS.
+
 ## ۲۰۲۶-۰۹-۰۷ — زیرساخت Production و Auto-deploy
 
 - افزودن Dockerfileهای مستقل Next.js و NestJS و Compose شامل PostgreSQL 17 و Caddy؛

@@ -12,7 +12,7 @@ Client فقط `gestureId` و Hit telemetry را گزارش می‌کند و Scor
 
 Burstهای چندآیتمی و Cooldown پس از گروه‌های بزرگ بخشی از Schedule قطعی نسخه‌ی ۷ هستند و در بازسازی سرور نیز حضور دارند؛ پس افزایش همزمان Targetها مسیر ارسال Hit جعلی تازه‌ای ایجاد نمی‌کند.
 
-OTP با HMAC و Session Token با Hash ذخیره می‌شوند. Cookie در Production باید `Secure` باشد و HTTPS الزامی است.
+OTP با HMAC و Session Token با Hash ذخیره می‌شوند. Cookie در انتشار عمومی باید `Secure` باشد و HTTPS الزامی است. تنظیم `AUTH_COOKIE_SECURE=false` فقط برای QA موقت روی IP و HTTP مجاز است و با فعال‌شدن دامنه باید به `true` برگردد.
 
 در استقرار Production فقط پورت‌های SSH، HTTP و HTTPS روی Host مجاز هستند. PostgreSQL، NestJS و Next.js داخل Docker network باقی می‌مانند؛ Secretها فقط در فایل Permission-limited سرور نگهداری می‌شوند و وارد Image یا Git نمی‌شوند. `OTP_DELIVERY_MODE=preview` صرفاً برای QA محدود است، چون نمایش کد در Browser جای ارسال امن پیامک را نمی‌گیرد.
 
