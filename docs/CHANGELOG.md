@@ -5,6 +5,7 @@
 - افزودن Dockerfileهای مستقل Next.js و NestJS و Compose شامل PostgreSQL 17 و Caddy؛
 - خصوصی‌کردن پورت‌های Web، API و Database و قراردادن Caddy به‌عنوان تنها ورودی عمومی؛
 - افزودن اجرای Migration پیش از انتشار و Health Check پس از جایگزینی Containerها؛
+- نصب OpenSSL داخل Image سرویس API و تأمین URL غیرواقعی Build برای اجرای پایدار Prisma Generate؛
 - افزودن Timer یک‌دقیقه‌ای Server-side برای دریافت خودکار Commitهای تازه‌ی Branch `main`؛
 - مستندسازی SSH، Environment، Domain، TLS، Backup و عملیات استقرار ابرک ابرآروان.
 

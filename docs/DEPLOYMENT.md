@@ -26,6 +26,8 @@ ssh -i ~/.ssh/bahar_almas_arvan_ed25519 root@95.38.187.27
 - PostgreSQL 17 روی پورت داخلی ۵۴۳۲؛
 - سرویس موقت Migration پیش از هر انتشار.
 
+Image سرویس API بسته‌ی OpenSSL موردنیاز Prisma را نصب می‌کند. `DATABASE_URL` موجود در Dockerfile فقط برای Generate و Build است و در Runtime با مقدار Secret فایل `.env` سرور جایگزین می‌شود.
+
 پورت PostgreSQL روی Host منتشر نمی‌شود. داده‌ی آن در Volume دائمی `postgres_data` نگهداری می‌شود.
 
 ## انتشار خودکار

@@ -52,6 +52,7 @@
 - WebMCP خواندنی برای دریافت ده رکورد برتر در Browserهای پشتیبان.
 - README کوتاه انگلیسی شامل معرفی محصول و فهرست زبان‌ها و فناوری‌های اصلی، بدون جزئیات راه‌اندازی یا عملیات.
 - پیکربندی Production مبتنی بر Docker Compose برای Next.js، NestJS، PostgreSQL و Caddy؛
+- Image تولید API شامل OpenSSL موردنیاز Prisma و یک URL غیرواقعی فقط برای مرحله‌ی Generate/Build است؛ `DATABASE_URL` واقعی در Runtime از Environment سرور جایگزین می‌شود؛
 - چرخه‌ی انتشار خودکار Server-side که Branch `main` را هر ۶۰ ثانیه بررسی و فقط پس از Build، Migration و Health Check موفق ثبت می‌کند؛
 
 اعتبارسنجی انجام‌شده:
