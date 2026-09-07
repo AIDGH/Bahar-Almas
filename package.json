@@ -1,0 +1,18 @@
+{
+  "name": "bahar-almas-campaign-game",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Bahar Almas campaign landing game",
+  "packageManager": "pnpm@11.18.0",
+  "scripts": {
+    "dev": "pnpm --parallel --filter './apps/*' dev",
+    "build": "pnpm --filter @bahar-almas/api build && pnpm --filter @bahar-almas/web build",
+    "typecheck": "pnpm --filter @bahar-almas/api typecheck && pnpm --filter @bahar-almas/web typecheck",
+    "test": "pnpm --filter @bahar-almas/api test",
+    "lint": "pnpm --filter @bahar-almas/api lint && pnpm --filter @bahar-almas/web lint",
+    "format": "pnpm --filter @bahar-almas/api format",
+    "db:generate": "pnpm --filter @bahar-almas/api prisma:generate",
+    "db:migrate": "pnpm --filter @bahar-almas/api prisma:migrate:dev",
+    "db:deploy": "pnpm --filter @bahar-almas/api prisma:migrate:deploy"
+  }
+}
