@@ -15,7 +15,9 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json apps/api/package.json
 RUN pnpm install --frozen-lockfile --filter @bahar-almas/api...
 
-COPY apps/api apps/api
+COPY apps/api/prisma apps/api/prisma
+COPY apps/api/src apps/api/src
+COPY apps/api/prisma.config.ts apps/api/nest-cli.json apps/api/tsconfig.json apps/api/tsconfig.build.json apps/api/
 ENV DATABASE_URL="postgresql://build:build@localhost:5432/build?schema=public"
 RUN pnpm --filter @bahar-almas/api build
 
