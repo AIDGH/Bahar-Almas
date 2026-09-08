@@ -27,6 +27,8 @@ ssh -i ~/.ssh/bahar_almas_arvan_ed25519 root@<SERVER_IP>
 - PostgreSQL 17 روی پورت داخلی ۵۴۳۲؛
 - سرویس موقت Migration پیش از هر انتشار.
 
+سرویس‌های `api` و `migrate` هر دو از Image مشترک `bahar-almas-api:latest` استفاده می‌کنند. بنابراین Migration همیشه از همان Schema و فایل‌هایی اجرا می‌شود که API تازه با آن‌ها Build شده است؛ سرویس Profileدار `migrate` Image مستقل و Cacheشده ندارد.
+
 Image سرویس API بسته‌ی OpenSSL موردنیاز Prisma را نصب می‌کند. `DATABASE_URL` موجود در Dockerfile فقط برای Generate و Build است و در Runtime با مقدار Secret فایل `.env` سرور جایگزین می‌شود.
 
 Image پایه‌ی Web و API با Build argument به نام `NODE_IMAGE` قابل جایگزینی است. مقدار پیش‌فرض `node:24-bookworm-slim` است؛ روی ابرک ایران باید مقدار آن در `.env` سرور به Mirror در دسترس، مانند `docker.arvancloud.ir/library/node:24-bookworm-slim`، تغییر کند تا `build --pull` به Docker Hub وابسته نباشد. پوشه‌های `prisma` و `src` در Image API به‌صورت صریح و جداگانه کپی می‌شوند تا تغییر Migration مستقل از Cache عمومی Source تشخیص داده شود.
@@ -39,7 +41,7 @@ Timer سیستم هر ۶۰ ثانیه Branch `main` را بررسی می‌کن�
 
 1. Checkout با `fast-forward` به‌روز می‌شود؛
 2. Imageهای Web و API Build می‌شوند؛
-3. Migrationهای موجود با `prisma migrate deploy` اجرا می‌شوند؛
+3. Migrationهای موجود با `prisma migrate deploy` و همان Image تازه‌ی API اجرا می‌شوند؛
 4. Containerها به‌روزرسانی می‌شوند؛
 5. Health Check آدرس `/api/v1/health` باید موفق شود؛
 6. SHA موفق ذخیره می‌شود.

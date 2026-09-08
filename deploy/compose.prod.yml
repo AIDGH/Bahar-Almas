@@ -24,11 +24,7 @@ services:
       - no-new-privileges:true
 
   migrate:
-    build:
-      context: ..
-      dockerfile: apps/api/Dockerfile
-      args:
-        NODE_IMAGE: ${NODE_IMAGE:-node:24-bookworm-slim}
+    image: bahar-almas-api:latest
     env_file:
       - ../.env
     environment:
@@ -44,6 +40,7 @@ services:
       - tools
 
   api:
+    image: bahar-almas-api:latest
     build:
       context: ..
       dockerfile: apps/api/Dockerfile
