@@ -8,7 +8,9 @@ Database اصلی PostgreSQL و لایه‌ی دسترسی Prisma است.
 
 - شماره موبایل یکتا؛
 - نام نمایشی؛
+- کد معرف یکتا و معرف اختیاری؛
 - بهترین امتیاز و زمان ثبت آن؛
+- مجموع امتیاز بازی‌ها و امتیازهای دعوت؛
 - ارتباط با Sessionها و Game Sessionها.
 
 ## OtpChallenge
@@ -16,6 +18,7 @@ Database اصلی PostgreSQL و لایه‌ی دسترسی Prisma است.
 - کد خام ذخیره نمی‌شود؛ `codeHash` با HMAC-SHA256 ذخیره می‌شود؛
 - دارای انقضا، شمارنده‌ی تلاش و زمان مصرف است؛
 - برای حساب تازه نام نمایشی موقتاً روی Challenge نگهداری می‌شود.
+- نوع Challenge ورود/ثبت‌نام و شناسه‌ی معرف تا Verify نگهداری می‌شود.
 
 ## UserSession
 
@@ -29,6 +32,14 @@ Database اصلی PostgreSQL و لایه‌ی دسترسی Prisma است.
 - وضعیت `ACTIVE`، `COMPLETED`، `EXPIRED` یا `INVALIDATED`؛
 - امتیاز محاسبه‌شده‌ی سرور؛
 - نسخه‌ی قوانین اعتبارسنجی.
+- `userId` تا زمان Claim می‌تواند خالی باشد؛
+- Hash توکن Claim و مهلت ۲۴ ساعته‌ی اتصال رکورد به حساب.
+
+## ReferralReward
+
+- هر User دعوت‌شده فقط یک Reward می‌تواند ایجاد کند؛
+- معرف، کاربر دعوت‌شده، مقدار ۱٬۰۰۰ امتیاز و زمان ثبت برای Audit نگهداری می‌شوند؛
+- افزایش `referralPoints` معرف و ساخت Reward داخل یک Transaction انجام می‌شود.
 
 ## GameHit
 
@@ -37,7 +48,7 @@ Database اصلی PostgreSQL و لایه‌ی دسترسی Prisma است.
 - فقط Hitهای پذیرفته‌شده ذخیره می‌شوند؛
 - ستون `points` امتیاز نهایی همان Hit پس از اعمال ضریب Combo معتبر سرور را نگه می‌دارد؛ `gestureId` فقط هنگام Finish پردازش می‌شود و در نسخه‌ی فعلی ذخیره نمی‌شود.
 
-Migration اولیه در `apps/api/prisma/migrations/20260904000000_init/migration.sql` قرار دارد.
+Migration اولیه در `20260904000000_init` و Migration بازی مهمان، پروفایل و دعوت در `20260908000000_guest_games_profiles_referrals` قرار دارند.
 
 ## نگهداری در Production
 

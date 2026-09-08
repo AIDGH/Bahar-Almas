@@ -2,7 +2,8 @@ import type {
   GameHit,
   GameResult,
   GameSession,
-  LeaderboardEntry,
+  LeaderboardPage,
+  Profile,
   User,
 } from './types';
 
@@ -17,7 +18,12 @@ export async function getMe(): Promise<User | null> {
   return unwrap<User>(response);
 }
 
-export async function requestOtp(mobile: string, displayName: string) {
+export async function requestOtp(input: {
+  mode: 'login' | 'register';
+  mobile: string;
+  displayName?: string;
+  referralCode?: string;
+}) {
   return request<{
     mobile: string;
     expiresInSeconds: number;
@@ -25,7 +31,7 @@ export async function requestOtp(mobile: string, displayName: string) {
     developmentCode?: string;
   }>(`${API_BASE}/auth/otp/request`, {
     method: 'POST',
-    body: JSON.stringify({ mobile, displayName }),
+    body: JSON.stringify(input),
   });
 }
 
@@ -42,8 +48,10 @@ export async function logout() {
   });
 }
 
-export async function getLeaderboard() {
-  return request<LeaderboardEntry[]>(`${API_BASE}/leaderboard?limit=20`);
+export async function getLeaderboard(offset = 0, limit = 10) {
+  return request<LeaderboardPage>(
+    `${API_BASE}/leaderboard?limit=${limit}&offset=${offset}`,
+  );
 }
 
 export async function startGame() {
@@ -52,12 +60,32 @@ export async function startGame() {
 
 export async function finishGame(
   sessionId: string,
+  claimToken: string,
   hits: GameHit[],
   endedEarly = false,
 ) {
   return request<GameResult>(`${API_BASE}/games/${sessionId}/finish`, {
     method: 'POST',
+    headers: { 'X-Game-Token': claimToken },
     body: JSON.stringify({ hits, endedEarly }),
+  });
+}
+
+export async function claimGame(sessionId: string, claimToken: string) {
+  return request<GameResult>(`${API_BASE}/games/${sessionId}/claim`, {
+    method: 'POST',
+    headers: { 'X-Game-Token': claimToken },
+  });
+}
+
+export async function getProfile(offset = 0, limit = 20) {
+  return request<Profile>(`${API_BASE}/profile?limit=${limit}&offset=${offset}`);
+}
+
+export async function updateProfile(displayName: string) {
+  return request<User>(`${API_BASE}/profile`, {
+    method: 'PATCH',
+    body: JSON.stringify({ displayName }),
   });
 }
 

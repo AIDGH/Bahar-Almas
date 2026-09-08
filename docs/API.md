@@ -10,12 +10,14 @@ Base path: `/api/v1`
 
 ```json
 {
+  "mode": "register",
   "mobile": "09123456789",
-  "displayName": "سارا"
+  "displayName": "سارا",
+  "referralCode": "A1B2C3D4E5"
 }
 ```
 
-برای حساب تازه، `displayName` الزامی است. در حالت `OTP_DELIVERY_MODE=preview` پاسخ دارای `developmentCode` است. این فیلد در اتصال SMS واقعی باید حذف شود.
+`mode` باید `login` یا `register` باشد. برای ثبت‌نام، `displayName` الزامی و `referralCode` اختیاری است؛ برای ورود فقط شماره لازم است. ورود شماره‌ی ثبت‌نشده و ثبت‌نام دوباره‌ی شماره‌ی موجود رد می‌شود. در حالت `OTP_DELIVERY_MODE=preview` پاسخ دارای `developmentCode` است.
 
 ### `POST /auth/otp/verify`
 
@@ -26,11 +28,11 @@ Base path: `/api/v1`
 }
 ```
 
-Challenge را مصرف می‌کند، در صورت نیاز User می‌سازد و Cookie را تنظیم می‌کند.
+Challenge را مصرف می‌کند، در حالت ثبت‌نام User و کد معرف یکتا می‌سازد و Cookie را تنظیم می‌کند. اگر کد معرف معتبر ارسال شده باشد، ۱٬۰۰۰ امتیاز در همان Transaction به صاحب کد اضافه می‌شود.
 
 ### `GET /auth/me`
 
-User فعلی شامل `id`، `mobile`، `displayName` و `bestScore`.
+User فعلی شامل هویت، کد معرف، `bestScore`، `totalGameScore`، `referralPoints` و `totalScore` است.
 
 ### `POST /auth/logout`
 
@@ -40,9 +42,15 @@ Session فعلی را حذف و Cookie را پاک می‌کند.
 
 ### `POST /games/start`
 
-نیازمند Session. پاسخ شامل `id`، `startedAt`، `durationMs=60000` و Target schedule است. بیش از ۵ شروع در ۱۰ دقیقه پذیرفته نمی‌شود و شروع تازه Session فعال قبلی را باطل می‌کند.
+عمومی و بدون نیاز به ورود است. پاسخ شامل `id`، `startedAt`، `durationMs=60000`، Target schedule و `claimToken` تصادفی است. Token خام فقط به Browser داده می‌شود و Database Hash آن را تا ۲۴ ساعت نگه می‌دارد.
 
 ### `POST /games/:id/finish`
+
+Header الزامی:
+
+```text
+X-Game-Token: <claimToken>
+```
 
 ```json
 {
@@ -63,13 +71,31 @@ Session فعلی را حذف و Cookie را پاک می‌کند.
 
 `gestureId` شناسه‌ی عددی هر تماس پیوسته‌ی Pointer است. این فیلد برای تشخیص Combo استفاده می‌شود: حداقل سه Hit معتبر از یک Gesture که حداکثر ۳۰۰ میلی‌ثانیه از اولین Hit خوشه فاصله دارند، ضریب می‌گیرند. ضریب سه‌تایی ۱.۵، چهارتایی ۲ و به‌طور عمومی `تعداد / ۲` است.
 
-امتیاز از Client دریافت نمی‌شود. سرور ابتدا Hitها را با Schedule اعتبارسنجی می‌کند و سپس ضریب Combo را اعمال می‌کند. پاسخ شامل `score` معتبر، تعداد Hit پذیرفته/ردشده، `bestScore`، `isPersonalBest` و `rank` است.
+امتیاز از Client دریافت نمی‌شود. پاسخ این مرحله `score` معتبر و تعداد Hitهای پذیرفته/ردشده را برمی‌گرداند، اما هنوز رکورد به User متصل نشده است. Finish با Token یکسان Idempotent است.
+
+### `POST /games/:id/claim`
+
+نیازمند Session ورود و Header `X-Game-Token` است. یک بازی `COMPLETED` و ثبت‌نشده را فقط یک‌بار به User فعلی متصل می‌کند، `totalGameScore` و در صورت لزوم `bestScore` را به‌روزرسانی می‌کند و Rank را برمی‌گرداند.
+
+## Profile
+
+### `GET /profile?limit=20&offset=0`
+
+نیازمند Session است. هویت، شماره، کد معرف، آمار امتیاز و تاریخچه‌ی صفحه‌بندی‌شده‌ی بازی‌های ثبت‌شده را برمی‌گرداند. زمان‌ها ISO/UTC هستند و UI آن‌ها را با تقویم شمسی نمایش می‌دهد.
+
+### `PATCH /profile`
+
+```json
+{ "displayName": "نام تازه" }
+```
+
+نام نمایشی را تغییر می‌دهد. نام‌ها عمداً یکتا نیستند.
 
 ## Leaderboard
 
-### `GET /leaderboard?limit=20`
+### `GET /leaderboard?limit=10&offset=0`
 
-عمومی است. فقط Userهایی با امتیاز بیشتر از صفر را بر اساس `bestScore DESC` نمایش می‌دهد. در امتیاز برابر، رکوردی که زودتر ثبت شده بالاتر است. `limit` بین ۳ و ۵۰ محدود می‌شود.
+عمومی و صفحه‌بندی‌شده است. فقط Userهایی با امتیاز بیشتر از صفر را بر اساس `bestScore DESC` نمایش می‌دهد. پاسخ شامل `entries`، `total`، `nextOffset` و در صورت وجود Cookie معتبر، `currentPlayer` با رتبه‌ی دقیق اوست. UI ابتدا ده نفر را می‌گیرد و هنگام Scroll ادامه‌ی جدول را بارگذاری می‌کند.
 
 ## Health
 

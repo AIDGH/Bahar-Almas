@@ -2,7 +2,11 @@ export type User = {
   id: string;
   mobile: string;
   displayName: string;
+  referralCode: string;
   bestScore: number;
+  totalGameScore: number;
+  referralPoints: number;
+  totalScore: number;
 };
 
 export type LeaderboardEntry = {
@@ -30,6 +34,7 @@ export type GameSession = {
   id: string;
   startedAt: string;
   durationMs: number;
+  claimToken: string;
   targets: GameTarget[];
 };
 
@@ -45,7 +50,27 @@ export type GameResult = {
   score: number;
   validHitCount: number;
   rejectedHitCount: number;
-  isPersonalBest: boolean;
-  bestScore: number;
-  rank: number;
+  claimed: boolean;
+  isPersonalBest?: boolean;
+  bestScore?: number;
+  rank?: number;
+};
+
+export type LeaderboardPage = {
+  entries: LeaderboardEntry[];
+  total: number;
+  nextOffset: number | null;
+  currentPlayer: LeaderboardEntry | null;
+};
+
+export type GameHistoryEntry = {
+  id: string;
+  score: number;
+  playedAt?: string;
+};
+
+export type Profile = User & {
+  games: GameHistoryEntry[];
+  totalGames: number;
+  nextOffset: number | null;
 };

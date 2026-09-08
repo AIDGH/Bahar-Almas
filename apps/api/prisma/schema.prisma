@@ -15,16 +15,29 @@ enum GameSessionStatus {
   INVALIDATED
 }
 
+enum AuthMode {
+  LOGIN
+  REGISTER
+}
+
 model User {
-  id           String        @id @default(uuid()) @db.Uuid
-  mobile       String        @unique @db.VarChar(16)
-  displayName  String        @db.VarChar(40)
-  bestScore    Int           @default(0)
-  bestScoredAt DateTime?     @db.Timestamptz(3)
-  sessions     UserSession[]
-  gameSessions GameSession[]
-  createdAt    DateTime      @default(now()) @db.Timestamptz(3)
-  updatedAt    DateTime      @updatedAt @db.Timestamptz(3)
+  id                     String           @id @default(uuid()) @db.Uuid
+  mobile                 String           @unique @db.VarChar(16)
+  displayName            String           @db.VarChar(40)
+  referralCode           String           @unique @db.VarChar(12)
+  referredById           String?          @db.Uuid
+  bestScore              Int              @default(0)
+  bestScoredAt           DateTime?        @db.Timestamptz(3)
+  totalGameScore         Int              @default(0)
+  referralPoints         Int              @default(0)
+  sessions               UserSession[]
+  gameSessions           GameSession[]
+  referredBy             User?            @relation("UserReferrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals              User[]           @relation("UserReferrals")
+  referralRewardsSent    ReferralReward[] @relation("ReferralRewardReferrer")
+  referralRewardReceived ReferralReward?  @relation("ReferralRewardReferred")
+  createdAt              DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime         @updatedAt @db.Timestamptz(3)
 
   @@index([bestScore, bestScoredAt])
 }
@@ -33,6 +46,8 @@ model OtpChallenge {
   id          String    @id @default(uuid()) @db.Uuid
   mobile      String    @db.VarChar(16)
   displayName String?   @db.VarChar(40)
+  authMode    AuthMode  @default(REGISTER)
+  referrerId  String?   @db.Uuid
   codeHash    String    @db.Char(64)
   attempts    Int       @default(0)
   expiresAt   DateTime  @db.Timestamptz(3)
@@ -57,7 +72,9 @@ model UserSession {
 
 model GameSession {
   id                String            @id @default(uuid()) @db.Uuid
-  userId            String            @db.Uuid
+  userId            String?           @db.Uuid
+  claimTokenHash    String?           @unique @db.Char(64)
+  claimExpiresAt    DateTime?         @db.Timestamptz(3)
   seed              Int
   startedAt         DateTime          @db.Timestamptz(3)
   expiresAt         DateTime          @db.Timestamptz(3)
@@ -65,12 +82,24 @@ model GameSession {
   score             Int               @default(0)
   status            GameSessionStatus @default(ACTIVE)
   validationVersion Int               @default(1)
-  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
   hits              GameHit[]
   createdAt         DateTime          @default(now()) @db.Timestamptz(3)
 
   @@index([userId, status])
   @@index([createdAt])
+}
+
+model ReferralReward {
+  id             String   @id @default(uuid()) @db.Uuid
+  referrerId     String   @db.Uuid
+  referredUserId String   @unique @db.Uuid
+  points         Int      @default(1000)
+  referrer       User     @relation("ReferralRewardReferrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  referredUser   User     @relation("ReferralRewardReferred", fields: [referredUserId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([referrerId, createdAt])
 }
 
 model GameHit {

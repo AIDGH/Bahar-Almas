@@ -2,8 +2,14 @@
 
 ## قبل از QA ذی‌نفعان
 
+- [x] امکان بازی مهمان و Claim رکورد پس از ورود/ثبت‌نام؛
+- [x] جداسازی رابط و قواعد ورود از ثبت‌نام؛
+- [x] پروفایل شامل ویرایش نام، شماره، آمار امتیاز و تاریخچه‌ی شمسی؛
+- [x] کد و لینک UTM یکتا و پاداش ۱٬۰۰۰ امتیازی معرف؛
+- [x] ده رکورد اول، Scroll کل لیدربورد و رتبه‌ی متمایز User فعلی؛
+- [x] اجرای Migration و تست یکپارچه‌ی جریان‌های جدید روی PostgreSQL موقت محلی؛
 - [ ] اجرای Migration روی PostgreSQL محیط QA؛
-- [ ] تست دستی کامل OTP → Game → Result → Leaderboard؛
+- [ ] تست دستی کامل Guest Game → Result → Login/Register → Claim → Profile → Leaderboard؛
 - [ ] تست واقعی روی iPhone Safari و چند Android Chrome؛
 - [ ] تست Android Chrome با هر دو حالت فعال و غیرفعال `Remove animations`؛ در هر دو حالت Countdown و خرچ/خروچ باید Motion کامل داشته باشند و Combo در حالت کاهش Motion ثابت دیده شود؛
 - [ ] QA دستی HUD، Pause/End، محدوده‌ی اوج آیتم و خوانایی/زمان‌بندی WebPهای ثابت خرچ/خروچ روی موبایل، تبلت و دسکتاپ؛
@@ -21,6 +27,8 @@
 - [ ] اتصال SMS Provider و خاموش‌کردن OTP Preview؛
 - [ ] فعال‌کردن HTTPS و بازگرداندن `AUTH_COOKIE_SECURE=true`؛
 - [ ] تعریف Limit روزانه‌ی شرکت در کمپین؛
+- [ ] افزودن Rate Limit مبتنی بر IP/device برای Start عمومی بازی؛
+- [ ] تصمیم درباره‌ی فوری‌بودن Reward دعوت یا الزام اولین بازی معتبر فرد دعوت‌شده؛
 - [ ] افزودن Edge Rate Limit/WAF؛
 - [ ] انتقال ثبت و سقف Pause از Client به Server برای نسخه‌ی جایزه‌دار؛
 - [ ] Load Test پایان بازی و Leaderboard؛

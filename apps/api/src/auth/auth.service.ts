@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   HttpException,
   HttpStatus,
   Injectable,
@@ -16,11 +17,13 @@ import {
 import { Request, Response } from 'express';
 import { EnvironmentVariables } from '../config/environment';
 import { PrismaService } from '../database/prisma.service';
+import { AuthMode } from '../generated/prisma/enums';
 import { normalizeDigits, normalizeIranianMobile } from './auth-normalization';
 import { RequestOtpDto } from './dto/request-otp.dto';
 
 const SESSION_COOKIE = 'bahar_almas_session';
 const MAX_OTP_ATTEMPTS = 5;
+const REFERRAL_REWARD_POINTS = 1_000;
 
 type RequestMetadata = { userAgent?: string; ipAddress?: string };
 
@@ -38,8 +41,28 @@ export class AuthService {
       where: { mobile },
       select: { id: true },
     });
-    if (!existingUser && !displayName) {
+    if (dto.mode === 'login' && !existingUser) {
+      throw new BadRequestException(
+        'حسابی با این شماره پیدا نشد؛ ابتدا ثبت‌نام کنید',
+      );
+    }
+    if (dto.mode === 'register' && existingUser) {
+      throw new ConflictException(
+        'این شماره قبلاً ثبت‌نام شده؛ از بخش ورود استفاده کنید',
+      );
+    }
+    if (dto.mode === 'register' && !displayName) {
       throw new BadRequestException('برای ساخت حساب، نام نمایشی را وارد کنید');
+    }
+
+    const referrer = dto.referralCode
+      ? await this.prisma.user.findUnique({
+          where: { referralCode: dto.referralCode.trim().toUpperCase() },
+          select: { id: true },
+        })
+      : null;
+    if (dto.mode === 'register' && dto.referralCode && !referrer) {
+      throw new BadRequestException('کد معرف پیدا نشد');
     }
 
     const resendSeconds = this.config.get('AUTH_OTP_RESEND_SECONDS', {
@@ -65,7 +88,9 @@ export class AuthService {
     const challenge = await this.prisma.otpChallenge.create({
       data: {
         mobile,
-        displayName: existingUser ? null : displayName,
+        displayName: dto.mode === 'register' ? displayName : null,
+        authMode: dto.mode === 'register' ? AuthMode.REGISTER : AuthMode.LOGIN,
+        referrerId: dto.mode === 'register' ? referrer?.id : null,
         codeHash: this.hashOtp(mobile, code),
         expiresAt: new Date(Date.now() + ttlMinutes * 60_000),
       },
@@ -112,19 +137,55 @@ export class AuthService {
       throw new UnauthorizedException('کد تأیید درست نیست');
     }
 
+    const referralCode =
+      challenge.authMode === AuthMode.REGISTER
+        ? await this.createUniqueReferralCode()
+        : null;
     const user = await this.prisma.$transaction(async (transaction) => {
       await transaction.otpChallenge.update({
         where: { id: challenge.id },
         data: { consumedAt: new Date() },
       });
-      return transaction.user.upsert({
-        where: { mobile },
-        create: {
+      if (challenge.authMode === AuthMode.LOGIN) {
+        const existingUser = await transaction.user.findUnique({
+          where: { mobile },
+        });
+        if (!existingUser) {
+          throw new UnauthorizedException('حساب کاربری پیدا نشد');
+        }
+        return existingUser;
+      }
+
+      const referrer = challenge.referrerId
+        ? await transaction.user.findUnique({
+            where: { id: challenge.referrerId },
+            select: { id: true },
+          })
+        : null;
+      const createdUser = await transaction.user.create({
+        data: {
           mobile,
           displayName: challenge.displayName ?? `بازیکن ${mobile.slice(-4)}`,
+          referralCode: referralCode!,
+          referredById: referrer?.id,
         },
-        update: {},
       });
+
+      if (referrer) {
+        await transaction.referralReward.create({
+          data: {
+            referrerId: referrer.id,
+            referredUserId: createdUser.id,
+            points: REFERRAL_REWARD_POINTS,
+          },
+        });
+        await transaction.user.update({
+          where: { id: referrer.id },
+          data: { referralPoints: { increment: REFERRAL_REWARD_POINTS } },
+        });
+      }
+
+      return createdUser;
     });
 
     return this.createSession(user, metadata);
@@ -142,9 +203,22 @@ export class AuthService {
   async getCurrentUser(userId: string) {
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { id: true, mobile: true, displayName: true, bestScore: true },
+      select: {
+        id: true,
+        mobile: true,
+        displayName: true,
+        referralCode: true,
+        bestScore: true,
+        totalGameScore: true,
+        referralPoints: true,
+      },
     });
-    return { data: user };
+    return {
+      data: {
+        ...user,
+        totalScore: user.totalGameScore + user.referralPoints,
+      },
+    };
   }
 
   async logout(token: string | undefined): Promise<void> {
@@ -187,7 +261,10 @@ export class AuthService {
       id: string;
       mobile: string;
       displayName: string;
+      referralCode: string;
       bestScore: number;
+      totalGameScore: number;
+      referralPoints: number;
     },
     metadata: RequestMetadata,
   ) {
@@ -215,7 +292,11 @@ export class AuthService {
         id: user.id,
         mobile: user.mobile,
         displayName: user.displayName,
+        referralCode: user.referralCode,
         bestScore: user.bestScore,
+        totalGameScore: user.totalGameScore,
+        referralPoints: user.referralPoints,
+        totalScore: user.totalGameScore + user.referralPoints,
       },
     };
   }
@@ -227,6 +308,21 @@ export class AuthService {
     )
       .update(`${mobile}:${code}`)
       .digest('hex');
+  }
+
+  private async createUniqueReferralCode(): Promise<string> {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const code = randomBytes(5).toString('hex').toUpperCase();
+      const exists = await this.prisma.user.findUnique({
+        where: { referralCode: code },
+        select: { id: true },
+      });
+      if (!exists) return code;
+    }
+    throw new HttpException(
+      'ساخت کد معرف انجام نشد؛ دوباره تلاش کنید',
+      HttpStatus.SERVICE_UNAVAILABLE,
+    );
   }
 }
 

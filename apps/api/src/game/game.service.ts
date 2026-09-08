@@ -1,11 +1,15 @@
 import {
   BadRequestException,
-  HttpException,
-  HttpStatus,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
-import { randomInt } from 'node:crypto';
+import {
+  createHash,
+  randomBytes,
+  randomInt,
+  timingSafeEqual,
+} from 'node:crypto';
 import { PrismaService } from '../database/prisma.service';
 import { GameSessionStatus } from '../generated/prisma/enums';
 import { FinishGameDto } from './dto/finish-game.dto';
@@ -19,38 +23,22 @@ import {
 
 const FINISH_EARLY_TOLERANCE_MS = 2_000;
 const FINISH_GRACE_MS = 90_000;
-const MAX_STARTS_PER_TEN_MINUTES = 5;
+const CLAIM_WINDOW_MS = 24 * 60 * 60_000;
 
 @Injectable()
 export class GameService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async start(userId: string) {
+  async start() {
     const now = new Date();
-    const recentStarts = await this.prisma.gameSession.count({
-      where: {
-        userId,
-        createdAt: { gte: new Date(now.getTime() - 10 * 60_000) },
-      },
-    });
-    if (recentStarts >= MAX_STARTS_PER_TEN_MINUTES) {
-      throw new HttpException(
-        'برای شروع بازی بعدی چند دقیقه صبر کنید',
-        HttpStatus.TOO_MANY_REQUESTS,
-      );
-    }
-
-    await this.prisma.gameSession.updateMany({
-      where: { userId, status: GameSessionStatus.ACTIVE },
-      data: { status: GameSessionStatus.INVALIDATED, finishedAt: now },
-    });
-
     const seed = randomInt(1, 2_147_483_647);
+    const claimToken = randomBytes(32).toString('base64url');
     const expiresAt = new Date(now.getTime() + GAME_DURATION_MS);
     const gameSession = await this.prisma.gameSession.create({
       data: {
-        userId,
         seed,
+        claimTokenHash: hashToken(claimToken),
+        claimExpiresAt: new Date(now.getTime() + CLAIM_WINDOW_MS),
         startedAt: now,
         expiresAt,
         validationVersion: VALIDATION_VERSION,
@@ -62,16 +50,29 @@ export class GameService {
         id: gameSession.id,
         startedAt: gameSession.startedAt.toISOString(),
         durationMs: GAME_DURATION_MS,
+        claimToken,
         targets: generateSchedule(seed),
       },
     };
   }
 
-  async finish(userId: string, sessionId: string, dto: FinishGameDto) {
-    const session = await this.prisma.gameSession.findFirst({
-      where: { id: sessionId, userId },
+  async finish(sessionId: string, claimToken: string, dto: FinishGameDto) {
+    const session = await this.prisma.gameSession.findUnique({
+      where: { id: sessionId },
+      include: { _count: { select: { hits: true } } },
     });
     if (!session) throw new NotFoundException('بازی پیدا نشد');
+    this.assertClaimToken(session.claimTokenHash, claimToken);
+    if (session.status === GameSessionStatus.COMPLETED) {
+      return {
+        data: {
+          score: session.score,
+          validHitCount: session._count.hits,
+          rejectedHitCount: 0,
+          claimed: Boolean(session.userId),
+        },
+      };
+    }
     if (session.status !== GameSessionStatus.ACTIVE) {
       throw new BadRequestException('این بازی قبلاً بسته شده است');
     }
@@ -104,12 +105,6 @@ export class GameService {
     const validHits = validateHits(schedule, submittedHits);
     const scoredHits = applyComboMultipliers(validHits);
     const score = scoredHits.reduce((sum, hit) => sum + hit.points, 0);
-    const currentUser = await this.prisma.user.findUniqueOrThrow({
-      where: { id: userId },
-      select: { bestScore: true },
-    });
-    const isPersonalBest = score > currentUser.bestScore;
-
     await this.prisma.$transaction(async (transaction) => {
       if (scoredHits.length > 0) {
         await transaction.gameHit.createMany({
@@ -132,26 +127,103 @@ export class GameService {
           finishedAt: now,
         },
       });
-      if (isPersonalBest) {
-        await transaction.user.update({
-          where: { id: userId },
-          data: { bestScore: score, bestScoredAt: now },
-        });
-      }
     });
-
-    const rank =
-      (await this.prisma.user.count({ where: { bestScore: { gt: score } } })) +
-      1;
     return {
       data: {
         score,
         validHitCount: scoredHits.length,
         rejectedHitCount: dto.hits.length - validHits.length,
-        isPersonalBest,
-        bestScore: Math.max(score, currentUser.bestScore),
-        rank,
+        claimed: false,
       },
     };
   }
+
+  async claim(userId: string, sessionId: string, claimToken: string) {
+    const session = await this.prisma.gameSession.findUnique({
+      where: { id: sessionId },
+    });
+    if (!session) throw new NotFoundException('بازی پیدا نشد');
+    this.assertClaimToken(session.claimTokenHash, claimToken);
+    if (session.status !== GameSessionStatus.COMPLETED) {
+      throw new BadRequestException('نتیجه این بازی هنوز آماده ثبت نیست');
+    }
+    if (
+      session.claimExpiresAt &&
+      session.claimExpiresAt.getTime() < Date.now()
+    ) {
+      throw new BadRequestException('مهلت ثبت رکورد این بازی گذشته است');
+    }
+    if (session.userId && session.userId !== userId) {
+      throw new BadRequestException(
+        'این رکورد قبلاً برای کاربر دیگری ثبت شده است',
+      );
+    }
+
+    const result = await this.prisma.$transaction(async (transaction) => {
+      const user = await transaction.user.findUniqueOrThrow({
+        where: { id: userId },
+        select: { bestScore: true },
+      });
+      const isPersonalBest = session.score > user.bestScore;
+
+      if (!session.userId) {
+        const claimed = await transaction.gameSession.updateMany({
+          where: { id: session.id, userId: null },
+          data: { userId },
+        });
+        if (claimed.count !== 1) {
+          throw new BadRequestException('این رکورد هم‌زمان ثبت شده است');
+        }
+        await transaction.user.update({
+          where: { id: userId },
+          data: {
+            totalGameScore: { increment: session.score },
+            ...(isPersonalBest
+              ? { bestScore: session.score, bestScoredAt: new Date() }
+              : {}),
+          },
+        });
+      }
+
+      return {
+        isPersonalBest: !session.userId && isPersonalBest,
+        bestScore: Math.max(session.score, user.bestScore),
+      };
+    });
+
+    const rank =
+      (await this.prisma.user.count({
+        where: { bestScore: { gt: result.bestScore } },
+      })) + 1;
+    return {
+      data: {
+        score: session.score,
+        isPersonalBest: result.isPersonalBest,
+        bestScore: result.bestScore,
+        rank,
+        claimed: true,
+      },
+    };
+  }
+
+  private assertClaimToken(
+    expectedHash: string | null,
+    suppliedToken: string,
+  ): void {
+    if (!expectedHash || !suppliedToken) {
+      throw new UnauthorizedException('دسترسی به این بازی معتبر نیست');
+    }
+    const expected = Buffer.from(expectedHash, 'hex');
+    const supplied = Buffer.from(hashToken(suppliedToken), 'hex');
+    if (
+      expected.length !== supplied.length ||
+      !timingSafeEqual(expected, supplied)
+    ) {
+      throw new UnauthorizedException('دسترسی به این بازی معتبر نیست');
+    }
+  }
+}
+
+function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
 }

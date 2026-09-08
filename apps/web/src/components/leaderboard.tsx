@@ -1,13 +1,31 @@
+import type { UIEvent } from 'react';
 import type { LeaderboardEntry } from '@/lib/types';
 
 type LeaderboardProps = {
   entries: LeaderboardEntry[];
-  currentUserId?: string;
+  currentPlayer: LeaderboardEntry | null;
   loading: boolean;
+  loadingMore: boolean;
+  hasMore: boolean;
+  onLoadMore: () => void;
 };
 
-export function Leaderboard({ entries, currentUserId, loading }: LeaderboardProps) {
+export function Leaderboard({
+  entries,
+  currentPlayer,
+  loading,
+  loadingMore,
+  hasMore,
+  onLoadMore,
+}: LeaderboardProps) {
   const podium = [entries[1], entries[0], entries[2]];
+
+  function handleListScroll(event: UIEvent<HTMLOListElement>) {
+    const list = event.currentTarget;
+    if (list.scrollHeight - list.scrollTop - list.clientHeight < 80 && hasMore) {
+      onLoadMore();
+    }
+  }
 
   return (
     <aside className="leaderboard-card" id="leaderboard">
@@ -49,11 +67,15 @@ export function Leaderboard({ entries, currentUserId, loading }: LeaderboardProp
               ) : null,
             )}
           </div>
-          <ol className="leaderboard-list">
+          <ol className="leaderboard-list" onScroll={handleListScroll}>
             {entries.slice(3).map((entry) => (
               <li
                 key={entry.userId}
-                className={entry.userId === currentUserId ? 'is-current-player' : undefined}
+                className={
+                  entry.userId === currentPlayer?.userId && entry.rank <= 10
+                    ? 'is-current-player'
+                    : undefined
+                }
               >
                 <span className="rank-number">{toPersianNumber(entry.rank)}</span>
                 <span className="mini-avatar">{firstLetter(entry.displayName)}</span>
@@ -61,7 +83,19 @@ export function Leaderboard({ entries, currentUserId, loading }: LeaderboardProp
                 <b>{formatScore(entry.score)}</b>
               </li>
             ))}
+            {loadingMore && <li className="leaderboard-more">در حال دریافت رتبه‌های بیشتر…</li>}
+            {!hasMore && entries.length > 10 && (
+              <li className="leaderboard-more">به انتهای جدول رسیدی</li>
+            )}
           </ol>
+          {currentPlayer && currentPlayer.rank > 10 && (
+            <div className="current-player-rank" aria-label="رتبه شما">
+              <span className="rank-number">{toPersianNumber(currentPlayer.rank)}</span>
+              <span className="mini-avatar">{firstLetter(currentPlayer.displayName)}</span>
+              <strong>{currentPlayer.displayName}</strong>
+              <b>{formatScore(currentPlayer.score)}</b>
+            </div>
+          )}
         </>
       )}
     </aside>

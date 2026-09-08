@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import {
+  claimGame,
   finishGame,
   getLeaderboard,
   getMe,
@@ -13,6 +14,15 @@ import type { GameHit, GameResult, GameSession, LeaderboardEntry, User } from '@
 import { AuthDialog } from './auth-dialog';
 import { GameCanvas } from './game-canvas';
 import { formatScore, Leaderboard } from './leaderboard';
+import { ProfileDialog } from './profile-dialog';
+
+const PENDING_GAME_KEY = 'bahar-almas-pending-game';
+
+type PendingGame = {
+  sessionId: string;
+  claimToken: string;
+  result: GameResult;
+};
 
 export function CampaignGame() {
   const [gameMusic, setGameMusic] = useState<HTMLAudioElement | null>(null);
@@ -20,16 +30,26 @@ export function CampaignGame() {
     useState<HTMLAudioElement | null>(null);
   const [user, setUser] = useState<User | null>();
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [currentPlayer, setCurrentPlayer] = useState<LeaderboardEntry | null>(null);
+  const [nextLeaderboardOffset, setNextLeaderboardOffset] = useState<number | null>(null);
   const [leaderboardLoading, setLeaderboardLoading] = useState(true);
+  const [leaderboardLoadingMore, setLeaderboardLoadingMore] = useState(false);
   const [session, setSession] = useState<GameSession>();
   const [result, setResult] = useState<GameResult>();
+  const [pendingGame, setPendingGame] = useState<PendingGame>();
   const [showAuth, setShowAuth] = useState(false);
+  const [authDefaultMode, setAuthDefaultMode] = useState<'login' | 'register'>('login');
+  const [showProfile, setShowProfile] = useState(false);
+  const [initialReferralCode, setInitialReferralCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
   const refreshLeaderboard = useCallback(async () => {
     try {
-      setLeaderboard(await getLeaderboard());
+      const page = await getLeaderboard();
+      setLeaderboard(page.entries);
+      setCurrentPlayer(page.currentPlayer);
+      setNextLeaderboardOffset(page.nextOffset);
     } catch {
       setLeaderboard([]);
     } finally {
@@ -40,9 +60,34 @@ export function CampaignGame() {
   useEffect(() => {
     void getMe().then(setUser).catch(() => setUser(null));
     void getLeaderboard()
-      .then(setLeaderboard)
+      .then((page) => {
+        setLeaderboard(page.entries);
+        setCurrentPlayer(page.currentPlayer);
+        setNextLeaderboardOffset(page.nextOffset);
+      })
       .catch(() => setLeaderboard([]))
       .finally(() => setLeaderboardLoading(false));
+
+    const savedGame = window.localStorage.getItem(PENDING_GAME_KEY);
+    if (savedGame) {
+      try {
+        const parsed = JSON.parse(savedGame) as PendingGame;
+        if (parsed.sessionId && parsed.claimToken && parsed.result?.score >= 0) {
+          window.setTimeout(() => {
+            setPendingGame(parsed);
+            setResult(parsed.result);
+          }, 0);
+        }
+      } catch {
+        window.localStorage.removeItem(PENDING_GAME_KEY);
+      }
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('utm_source') === 'referral') {
+      const referralCode = params.get('utm_campaign')?.toUpperCase() ?? '';
+      window.setTimeout(() => setInitialReferralCode(referralCode), 0);
+    }
   }, [refreshLeaderboard]);
 
   useEffect(() => {
@@ -85,9 +130,57 @@ export function CampaignGame() {
     return () => lifecycle.abort();
   }, [leaderboard]);
 
+  async function loadMoreLeaderboard() {
+    if (nextLeaderboardOffset === null || leaderboardLoadingMore) return;
+    setLeaderboardLoadingMore(true);
+    try {
+      const page = await getLeaderboard(nextLeaderboardOffset);
+      setLeaderboard((current) => {
+        const knownIds = new Set(current.map((entry) => entry.userId));
+        return [
+          ...current,
+          ...page.entries.filter((entry) => !knownIds.has(entry.userId)),
+        ];
+      });
+      setCurrentPlayer(page.currentPlayer);
+      setNextLeaderboardOffset(page.nextOffset);
+    } catch {
+      setNextLeaderboardOffset(null);
+    } finally {
+      setLeaderboardLoadingMore(false);
+    }
+  }
+
+  function openAuth(mode: 'login' | 'register') {
+    setAuthDefaultMode(mode);
+    setShowAuth(true);
+  }
+
+  const registerPendingGame = useCallback(async (game: PendingGame, authenticatedUser: User) => {
+    try {
+      const claimedResult = await claimGame(game.sessionId, game.claimToken);
+      window.localStorage.removeItem(PENDING_GAME_KEY);
+      setPendingGame(undefined);
+      setResult(claimedResult);
+      const refreshedUser = await getMe();
+      setUser(refreshedUser ?? {
+        ...authenticatedUser,
+        bestScore: claimedResult.bestScore ?? authenticatedUser.bestScore,
+      });
+      await refreshLeaderboard();
+    } catch (claimError) {
+      setError(`ورود انجام شد، اما ثبت رکورد ناموفق بود: ${messageOf(claimError)}`);
+    }
+  }, [refreshLeaderboard]);
+
   async function handleStart() {
-    if (!user) {
-      setShowAuth(true);
+    if (pendingGame) {
+      setResult(pendingGame.result);
+      if (user) {
+        await registerPendingGame(pendingGame, user);
+      } else {
+        openAuth('register');
+      }
       return;
     }
     setBusy(true);
@@ -122,24 +215,40 @@ export function CampaignGame() {
     async (hits: GameHit[], endedEarly = false) => {
       if (!session) return;
       try {
-        const nextResult = await finishGame(session.id, hits, endedEarly);
-        setResult(nextResult);
-        setUser((current) =>
-          current ? { ...current, bestScore: nextResult.bestScore } : current,
+        const nextResult = await finishGame(
+          session.id,
+          session.claimToken,
+          hits,
+          endedEarly,
         );
-        await refreshLeaderboard();
+        const nextPendingGame = {
+          sessionId: session.id,
+          claimToken: session.claimToken,
+          result: nextResult,
+        };
+        setPendingGame(nextPendingGame);
+        setResult(nextResult);
+        window.localStorage.setItem(
+          PENDING_GAME_KEY,
+          JSON.stringify(nextPendingGame),
+        );
+        if (user) {
+          await registerPendingGame(nextPendingGame, user);
+        }
       } catch (finishError) {
         setError(messageOf(finishError));
       } finally {
         setSession(undefined);
       }
     },
-    [refreshLeaderboard, session],
+    [registerPendingGame, session, user],
   );
 
   async function handleLogout() {
     await logout().catch(() => undefined);
     setUser(null);
+    setShowProfile(false);
+    await refreshLeaderboard();
     setResult(undefined);
   }
 
@@ -156,13 +265,15 @@ export function CampaignGame() {
         </nav>
         {user ? (
           <div className="user-chip">
-            <span>{user.displayName}</span>
-            <b>{formatScore(user.bestScore)}</b>
+            <button className="profile-trigger" type="button" onClick={() => setShowProfile(true)}>
+              <span>{user.displayName}</span>
+              <b>{formatScore(user.bestScore)}</b>
+            </button>
             <button type="button" onClick={handleLogout}>خروج</button>
           </div>
         ) : (
-          <button className="header-login" type="button" onClick={() => setShowAuth(true)}>
-            ورود به بازی
+          <button className="header-login" type="button" onClick={() => openAuth('login')}>
+            ورود / ثبت‌نام
           </button>
         )}
       </header>
@@ -189,14 +300,14 @@ export function CampaignGame() {
                   تردها رو بزن،
                   <strong> رکوردتو بشکن!</strong>
                 </h1>
-                <p>فقط یک دقیقه وقت داری؛ سوخاری‌ها را با یک حرکت سریع نصف کن.</p>
+                <p>بدون ثبت‌نام بازی کن؛ بعد از پایان، رکوردت را با شماره موبایل ذخیره کن.</p>
                 <div className="intro-stats">
                   <span><b>۱</b> دقیقه</span>
                   <i />
                   <span><b>۱۰</b> امتیاز پایه برای هر برش</span>
                 </div>
-                <button className="primary-button start-button" type="button" onClick={handleStart} disabled={busy || user === undefined}>
-                  <span>{busy ? 'در حال آماده‌سازی…' : user ? 'شروع بازی' : 'ورود و شروع'}</span>
+                <button className="primary-button start-button" type="button" onClick={handleStart} disabled={busy}>
+                  <span>{busy ? 'در حال آماده‌سازی…' : pendingGame ? 'ثبت رکورد قبلی' : 'شروع بازی'}</span>
                   <b>←</b>
                 </button>
                 {error && <div className="game-error" role="alert">{error}</div>}
@@ -209,10 +320,31 @@ export function CampaignGame() {
                   }}
                 >
                   <div className="result-panel" role="status">
-                    <span>{result.isPersonalBest ? 'رکورد تازه!' : 'پایان بازی'}</span>
+                    <span>
+                      {result.claimed
+                        ? result.isPersonalBest
+                          ? 'رکورد تازه!'
+                          : 'رکورد ثبت شد'
+                        : 'امتیازت آماده ثبت است'}
+                    </span>
                     <strong>{formatScore(result.score)}</strong>
-                    <p>رتبه‌ی فعلی تو: {new Intl.NumberFormat('fa-IR').format(result.rank)}</p>
-                    <button type="button" onClick={handleStart}>دوباره بازی کن</button>
+                    <p>
+                      {result.claimed && result.rank
+                        ? `رتبه‌ی فعلی تو: ${new Intl.NumberFormat('fa-IR').format(result.rank)}`
+                        : 'برای ماندن این امتیاز، وارد شو یا یک حساب بساز.'}
+                    </p>
+                    {result.claimed ? (
+                      <button type="button" onClick={handleStart}>دوباره بازی کن</button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => user && pendingGame
+                          ? void registerPendingGame(pendingGame, user)
+                          : openAuth('register')}
+                      >
+                        {user ? 'ثبت رکورد' : 'ورود یا ثبت‌نام و ثبت رکورد'}
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -222,8 +354,11 @@ export function CampaignGame() {
 
         <Leaderboard
           entries={leaderboard}
-          currentUserId={user?.id}
+          currentPlayer={currentPlayer}
           loading={leaderboardLoading}
+          loadingMore={leaderboardLoadingMore}
+          hasMore={nextLeaderboardOffset !== null}
+          onLoadMore={() => void loadMoreLeaderboard()}
         />
       </section>
 
@@ -236,17 +371,17 @@ export function CampaignGame() {
           <article>
             <i>۱</i>
             <span className="step-icon">⌁</span>
-            <div><h3>وارد شو</h3><p>با شماره موبایل و کد یک‌بارمصرف حسابت را بساز.</p></div>
+            <div><h3>بازی کن</h3><p>بدون ثبت‌نام وارد بازی شو و بهترین امتیازت را بگیر.</p></div>
           </article>
           <article>
             <i>۲</i>
             <span className="step-icon slash-icon">╱</span>
-            <div><h3>سوایپ کن</h3><p>انگشت یا نشانگر را سریع روی آیتم‌های سوخاری بکش.</p></div>
+            <div><h3>رکوردت را ثبت کن</h3><p>بعد از بازی با شماره موبایل وارد شو یا حساب تازه بساز.</p></div>
           </article>
           <article>
             <i>۳</i>
             <span className="step-icon">♛</span>
-            <div><h3>برو بالاتر</h3><p>بهترین امتیازت در جدول رکوردها ثبت می‌شود.</p></div>
+            <div><h3>برو بالاتر</h3><p>رتبه‌ات را ببین و لینک دعوت اختصاصی‌ات را برای بقیه بفرست.</p></div>
           </article>
         </div>
       </section>
@@ -257,13 +392,30 @@ export function CampaignGame() {
       </footer>
 
       <AuthDialog
+        key={`${showAuth}-${authDefaultMode}-${initialReferralCode}`}
         open={showAuth}
+        defaultMode={authDefaultMode}
+        initialReferralCode={initialReferralCode}
         onClose={() => setShowAuth(false)}
-        onAuthenticated={(authenticatedUser) => {
+        onAuthenticated={async (authenticatedUser) => {
           setUser(authenticatedUser);
           setShowAuth(false);
+          if (pendingGame) {
+            await registerPendingGame(pendingGame, authenticatedUser);
+          } else {
+            await refreshLeaderboard();
+          }
         }}
       />
+      {user && showProfile && (
+        <ProfileDialog
+          key={user.id}
+          open={showProfile}
+          user={user}
+          onClose={() => setShowProfile(false)}
+          onUserUpdated={setUser}
+        />
+      )}
     </main>
   );
 }

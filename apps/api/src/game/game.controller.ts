@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Headers,
   Param,
   ParseUUIDPipe,
   Post,
@@ -13,21 +14,30 @@ import { FinishGameDto } from './dto/finish-game.dto';
 import { GameService } from './game.service';
 
 @Controller('games')
-@UseGuards(SessionAuthGuard)
 export class GameController {
   constructor(private readonly games: GameService) {}
 
   @Post('start')
-  start(@Req() request: AuthenticatedRequest) {
-    return this.games.start(request.user.id);
+  start() {
+    return this.games.start();
   }
 
   @Post(':id/finish')
   finish(
-    @Req() request: AuthenticatedRequest,
     @Param('id', new ParseUUIDPipe()) id: string,
+    @Headers('x-game-token') claimToken: string,
     @Body() dto: FinishGameDto,
   ) {
-    return this.games.finish(request.user.id, id, dto);
+    return this.games.finish(id, claimToken, dto);
+  }
+
+  @Post(':id/claim')
+  @UseGuards(SessionAuthGuard)
+  claim(
+    @Req() request: AuthenticatedRequest,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Headers('x-game-token') claimToken: string,
+  ) {
+    return this.games.claim(request.user.id, id, claimToken);
   }
 }

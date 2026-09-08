@@ -7,12 +7,15 @@
 ```text
 Client
  ├── Landing UI
- ├── Auth dialog
+ ├── Separate login/register dialog
+ ├── Profile + Persian game history + referral link
+ ├── Paginated leaderboard + personal rank
  └── Canvas game
        ↓ REST / JSON + HttpOnly cookie
 NestJS
  ├── AuthModule
  ├── GameModule
+ ├── ProfileModule
  └── LeaderboardModule
        ↓ Prisma
 PostgreSQL
@@ -70,19 +73,20 @@ Branch `main` هر ۶۰ ثانیه از داخل سرور بررسی می‌شو
 - نتیجه‌ی Client صرفاً Hit telemetry است، نه Score قابل اعتماد؛
 - ضریب Combo پس از اعتبارسنجی Hitهای پایه و بر اساس `gestureId` و زمان Hit در سرور اعمال می‌شود؛
 - Score نهایی داخل Transaction ثبت می‌شود.
+- بازی پیش از ورود با Claim Token تصادفی شروع و Finish می‌شود؛ اتصال نتیجه به User فقط پس از احراز هویت انجام می‌شود؛
+- تاریخچه، مجموع امتیاز، پاداش دعوت و رتبه‌ی شخصی از PostgreSQL خوانده می‌شوند.
 
 ## چرخه‌ی Game Session
 
-1. کاربر احراز هویت‌شده درخواست شروع می‌دهد.
-2. API یک Seed تصادفی و زمان انقضای دقیق ۶۰ ثانیه می‌سازد.
-3. Schedule کامل برای Render به Client برگردانده می‌شود.
-4. Client فقط Targetهای فعال همان لحظه را رسم می‌کند.
-5. Client برای هر برش شناسه‌ی Target، شناسه‌ی Gesture، زمان نسبی و مشخصات Swipe را نگه می‌دارد.
-6. پایان عادی زودهنگام رد می‌شود؛ پایان صریح کاربر از منوی Pause مجاز است.
-7. در پایان دستی، زمان Hitها با زمان سپری‌شده‌ی ساعت سرور محدود می‌شود.
-8. API Schedule را از Seed بازسازی و Hitها را مستقل اعتبارسنجی می‌کند.
-9. API خوشه‌های Combo را روی Hitهای پذیرفته‌شده محاسبه و ضریب `n/2` را از سه Hit به بالا اعمال می‌کند.
-10. `GameHit`های پذیرفته‌شده با امتیاز ضریب‌خورده، نتیجه، بهترین امتیاز و رتبه ثبت/محاسبه می‌شوند.
+1. کاربر مهمان درخواست شروع می‌دهد.
+2. API یک Seed، انقضای ۶۰ ثانیه‌ای و Claim Token با مهلت ۲۴ ساعت می‌سازد.
+3. Schedule کامل و Token خام فقط به Client برگردانده می‌شوند؛ Database فقط Hash Token را دارد.
+4. Client Targetهای فعال را رسم و Hit telemetry را جمع می‌کند.
+5. Finish با Claim Token انجام و Score معتبر سرور روی GameSession بدون User ثبت می‌شود.
+6. نتیجه و Token تا زمان ورود در Browser نگهداری می‌شوند.
+7. کاربر وارد حساب قبلی می‌شود یا حساب تازه و کد معرف یکتا می‌سازد.
+8. Claim احراز هویت‌شده GameSession را فقط یک‌بار به User وصل می‌کند.
+9. تاریخچه، مجموع امتیاز، High Score و Rank به‌روزرسانی می‌شوند.
 
 ## Performance Budget
 

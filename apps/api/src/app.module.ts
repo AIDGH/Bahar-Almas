@@ -8,6 +8,7 @@ import {
 import { GameModule } from './game/game.module';
 import { HealthController } from './health.controller';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
+import { ProfileModule } from './profile/profile.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { LeaderboardModule } from './leaderboard/leaderboard.module';
     AuthModule,
     GameModule,
     LeaderboardModule,
+    ProfileModule,
   ],
   controllers: [HealthController],
 })
