@@ -7,7 +7,7 @@
 - Public IP: مقدار عملیاتی خارج از Repository؛ در دستورها با `<SERVER_IP>` نمایش داده می‌شود؛
 - مسیر برنامه روی سرور: `/opt/bahar-almas`؛
 - Branch انتشار: `main`؛
-- وضعیت: Web و API روی HTTP عمومی Health Check موفق دارند؛ PostgreSQL Migration اولیه اعمال شده و Timer انتشار فعال است.
+- وضعیت: Web و API روی HTTP عمومی Health Check موفق دارند؛ Migrationهای اولیه و بازی مهمان/پروفایل/دعوت روی PostgreSQL اعمال شده‌اند و Timer انتشار فعال است.
 
 ## اتصال SSH
 

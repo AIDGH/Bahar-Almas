@@ -19,7 +19,7 @@
 
 ## ۲. وضعیت فعلی
 
-وضعیت: **Core Gameplay MVP پیاده‌سازی شده، Build/Test محلی را گذرانده و نسخه‌ی Production آن روی ابرک ابرآروان با HTTP موقت فعال است**.
+وضعیت: **Core Gameplay، بازی پیش از ورود، پروفایل، دعوت و لیدربورد صفحه‌بندی‌شده پیاده‌سازی شده، Build/Test را گذرانده و روی ابرک ابرآروان با HTTP موقت فعال است**.
 
 موارد موجود:
 
@@ -72,6 +72,7 @@
 - تست واقعی OTP → Session → Game start → Server-validated finish → Leaderboard روی PostgreSQL محلی؛
 - تست یکپارچه‌ی محلی بازی مهمان → Finish معتبر → ثبت‌نام → Claim → تاریخچه پروفایل؛
 - تست یکپارچه‌ی ورود مستقل، نام نمایشی تکراری، پاداش ۱٬۰۰۰ امتیازی معرف، دو صفحه لیدربورد و رتبه‌ی شخصی؛
+- اعمال موفق Migration بازی مهمان/پروفایل/دعوت روی PostgreSQL Production و تأیید Healthy بودن PostgreSQL، API و Web پس از انتشار؛
 - حذف کامل داده‌ی آزمایشی پس از پایان تست.
 
 ## ۳. معماری
@@ -218,4 +219,4 @@ Web روی پورت ۳۰۰۲ و API روی پورت ۴۰۰۲ اجرا می‌ش�
 
 ## ۱۱. استقرار
 
-ابرک Production ابرآروان با Ubuntu 24.04 فعال است. نسخه‌ی `d106cc2` با Migration موفق و Health Check عمومی Web و API روی HTTP مستقر شد. برنامه در `/opt/bahar-almas` اجرا می‌شود، PostgreSQL فقط داخل Docker network قابل دسترسی است و Timer فعال Commitهای جدید `main` را هر ۶۰ ثانیه بررسی می‌کند. IP واقعی در مستندات عمومی Repository نگهداری نمی‌شود. جزئیات اتصال SSH، Containerها، انتشار خودکار، Environment، Domain و Backup در `docs/DEPLOYMENT.md` ثبت شده است.
+ابرک Production ابرآروان با Ubuntu 24.04 فعال است. نسخه‌ی جاری `main` شامل جریان بازی مهمان، پروفایل، دعوت و لیدربورد جدید با Migration موفق و Health Check Web/API روی HTTP مستقر شده است. برنامه در `/opt/bahar-almas` اجرا می‌شود، PostgreSQL فقط داخل Docker network قابل دسترسی است و Timer فعال Commitهای جدید `main` را هر ۶۰ ثانیه بررسی می‌کند. Buildهای سرور از Node Image موجود در Registry آروان استفاده می‌کنند و سرویس Migration همان Image تازه‌ی API را اجرا می‌کند. IP واقعی در مستندات عمومی Repository نگهداری نمی‌شود. جزئیات اتصال SSH، Containerها، انتشار خودکار، Environment، Domain و Backup در `docs/DEPLOYMENT.md` ثبت شده است.

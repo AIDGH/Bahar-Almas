@@ -12,6 +12,7 @@
 - پارامتری‌کردن Image پایه‌ی Node برای Build تولید و امکان استفاده از Registry آروان به‌جای Docker Hub روی سرور ایران.
 - جداسازی لایه‌ی Prisma/Migration در Image API برای جلوگیری از باقی‌ماندن Migration قدیمی در Cache انتشار.
 - یکی‌کردن Image سرویس‌های API و Migration تا چرخه‌ی انتشار هیچ‌گاه Migration را با Image قدیمی اجرا نکند.
+- انتشار موفق قابلیت‌های جدید روی ابرک، اعمال Migration دوم و تأیید Healthy بودن PostgreSQL، API و Web.
 
 ## ۲۰۲۶-۰۹-۰۷ — رفع Session ورود روی IP موقت
 
