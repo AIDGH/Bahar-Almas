@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { getProfile, updateProfile as saveProfile } from '@/lib/api';
 import type { Profile, User } from '@/lib/types';
 import { formatScore } from './leaderboard';
@@ -53,15 +53,6 @@ export function ProfileDialog({
     return () => window.removeEventListener('keydown', closeOnEscape);
   }, [closeDialog, open]);
 
-  const referralUrl = useMemo(() => {
-    if (!profile || typeof window === 'undefined') return '';
-    const url = new URL('/', window.location.origin);
-    url.searchParams.set('utm_source', 'referral');
-    url.searchParams.set('utm_medium', 'player');
-    url.searchParams.set('utm_campaign', profile.referralCode);
-    return url.toString();
-  }, [profile]);
-
   if (!open) return null;
 
   async function submitName(event: FormEvent<HTMLFormElement>) {
@@ -79,14 +70,14 @@ export function ProfileDialog({
     }
   }
 
-  async function copyReferralLink() {
-    if (!referralUrl) return;
+  async function copyReferralCode() {
+    if (!profile?.referralCode) return;
     try {
       if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(referralUrl);
+        await navigator.clipboard.writeText(profile.referralCode);
       } else {
         const field = document.createElement('textarea');
-        field.value = referralUrl;
+        field.value = profile.referralCode;
         field.style.position = 'fixed';
         field.style.opacity = '0';
         document.body.appendChild(field);
@@ -151,7 +142,7 @@ export function ProfileDialog({
           <div>
             <span>حساب بازیکن</span>
             <h2 id="profile-title">پروفایل من</h2>
-            <p>اطلاعات حساب، لینک دعوت و تمام رکوردهای ثبت‌شده‌ات</p>
+            <p>اطلاعات حساب، کد معرف و تمام رکوردهای ثبت‌شده‌ات</p>
           </div>
         </div>
 
@@ -210,12 +201,12 @@ export function ProfileDialog({
                 <span>کد معرف اختصاصی تو</span>
                 <strong dir="ltr">{profile.referralCode}</strong>
                 <small>
-                  هر ثبت‌نام موفق با این کد، ۱٬۰۰۰ امتیاز برای تو دارد.
+                  بعد از اولین بازی امتیازدارِ بازیکن معرفی‌شده، ۱٬۰۰۰ امتیاز
+                  برای تو ثبت می‌شود.
                 </small>
-                <code dir="ltr">{referralUrl}</code>
               </div>
-              <button type="button" onClick={copyReferralLink}>
-                {copied ? 'کپی شد ✓' : 'کپی لینک دعوت'}
+              <button type="button" onClick={copyReferralCode}>
+                {copied ? 'کپی شد ✓' : 'کپی کد معرف'}
               </button>
             </div>
 

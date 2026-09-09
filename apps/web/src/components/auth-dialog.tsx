@@ -1,7 +1,7 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
-import { requestOtp, verifyOtp } from '@/lib/api';
+import { FormEvent, useEffect, useState } from 'react';
+import { ApiError, requestOtp, verifyOtp } from '@/lib/api';
 import type { User } from '@/lib/types';
 
 type AuthMode = 'login' | 'register';
@@ -30,6 +30,15 @@ export function AuthDialog({
   const [previewCode, setPreviewCode] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [retryRemaining, setRetryRemaining] = useState(0);
+
+  useEffect(() => {
+    if (!open || retryRemaining <= 0) return;
+    const timer = window.setInterval(() => {
+      setRetryRemaining((current) => Math.max(0, current - 1));
+    }, 1_000);
+    return () => window.clearInterval(timer);
+  }, [open, retryRemaining]);
 
   if (!open) return null;
 
@@ -38,6 +47,7 @@ export function AuthDialog({
     setCode('');
     setPreviewCode(undefined);
     setError('');
+    setRetryRemaining(0);
     onClose();
   }
 
@@ -47,10 +57,16 @@ export function AuthDialog({
     setCode('');
     setPreviewCode(undefined);
     setError('');
+    setRetryRemaining(0);
   }
 
   async function submitIdentity(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    await requestCode();
+  }
+
+  async function requestCode() {
+    if (retryRemaining > 0) return;
     setBusy(true);
     setError('');
     try {
@@ -64,9 +80,13 @@ export function AuthDialog({
       });
       setMobile(result.mobile);
       setPreviewCode(result.developmentCode);
+      setCode('');
       setStep('code');
     } catch (requestError) {
       setError(messageOf(requestError));
+      if (requestError instanceof ApiError && requestError.retryAfterSeconds) {
+        setRetryRemaining(requestError.retryAfterSeconds);
+      }
     } finally {
       setBusy(false);
     }
@@ -192,7 +212,8 @@ export function AuthDialog({
                   maxLength={12}
                 />
                 <small className="field-hint">
-                  با ثبت‌نام موفق، ۱٬۰۰۰ امتیاز به صاحب این کد می‌رسد.
+                  بعد از اولین بازی امتیازدار، ۱٬۰۰۰ امتیاز به صاحب این کد
+                  می‌رسد.
                 </small>
               </>
             )}
@@ -203,7 +224,7 @@ export function AuthDialog({
             )}
             <button
               className="primary-button full-button"
-              disabled={busy}
+              disabled={busy || retryRemaining > 0}
               type="submit"
             >
               {busy ? 'یک لحظه…' : 'دریافت کد'}
@@ -253,11 +274,24 @@ export function AuthDialog({
             <button
               className="text-button"
               type="button"
+              disabled={busy || retryRemaining > 0}
+              onClick={() => void requestCode()}
+            >
+              دریافت مجدد کد
+            </button>
+            <button
+              className="text-button secondary-text-button"
+              type="button"
               onClick={() => setStep('identity')}
             >
               اصلاح شماره موبایل
             </button>
           </form>
+        )}
+        {retryRemaining > 0 && (
+          <div className="otp-rate-countdown" role="status" aria-live="polite">
+            درخواست دوباره تا {toPersianDigits(String(retryRemaining))} ثانیه
+          </div>
         )}
       </section>
     </div>

@@ -24,6 +24,7 @@ import {
 const FINISH_EARLY_TOLERANCE_MS = 2_000;
 const FINISH_GRACE_MS = 90_000;
 const CLAIM_WINDOW_MS = 24 * 60 * 60_000;
+const REFERRAL_REWARD_POINTS = 1_000;
 
 @Injectable()
 export class GameService {
@@ -162,7 +163,7 @@ export class GameService {
     const result = await this.prisma.$transaction(async (transaction) => {
       const user = await transaction.user.findUniqueOrThrow({
         where: { id: userId },
-        select: { bestScore: true },
+        select: { bestScore: true, referredById: true },
       });
       const isPersonalBest = session.score > user.bestScore;
 
@@ -183,6 +184,33 @@ export class GameService {
               : {}),
           },
         });
+
+        if (session.score > 0 && user.referredById) {
+          const referrer = await transaction.user.findFirst({
+            where: { id: user.referredById, isBanned: false },
+            select: { id: true },
+          });
+          if (referrer) {
+            const reward = await transaction.referralReward.createMany({
+              data: [
+                {
+                  referrerId: referrer.id,
+                  referredUserId: userId,
+                  points: REFERRAL_REWARD_POINTS,
+                },
+              ],
+              skipDuplicates: true,
+            });
+            if (reward.count === 1) {
+              await transaction.user.update({
+                where: { id: referrer.id },
+                data: {
+                  referralPoints: { increment: REFERRAL_REWARD_POINTS },
+                },
+              });
+            }
+          }
+        }
       }
 
       return {
@@ -193,7 +221,7 @@ export class GameService {
 
     const rank =
       (await this.prisma.user.count({
-        where: { bestScore: { gt: result.bestScore } },
+        where: { bestScore: { gt: result.bestScore }, isBanned: false },
       })) + 1;
     return {
       data: {

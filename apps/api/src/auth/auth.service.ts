@@ -18,13 +18,16 @@ import {
 import { Request, Response } from 'express';
 import { EnvironmentVariables } from '../config/environment';
 import { PrismaService } from '../database/prisma.service';
+import { Prisma } from '../generated/prisma/client';
 import { AuthMode, UserRole } from '../generated/prisma/enums';
 import { normalizeDigits, normalizeIranianMobile } from './auth-normalization';
 import { RequestOtpDto } from './dto/request-otp.dto';
 
 const SESSION_COOKIE = 'bahar_almas_session';
 const MAX_OTP_ATTEMPTS = 5;
-const REFERRAL_REWARD_POINTS = 1_000;
+const OTP_RATE_WINDOW_MS = 60_000;
+const OTP_FREE_REQUESTS = 2;
+const OTP_BLOCK_MS = 60_000;
 
 type RequestMetadata = { userAgent?: string; ipAddress?: string };
 
@@ -52,7 +55,7 @@ export class AuthService {
     }
     if (dto.mode === 'register' && existingUser) {
       throw new ConflictException(
-        'این شماره قبلاً ثبت‌نام شده؛ از بخش ورود استفاده کنید',
+        'این شماره قبلاً حساب دارد؛ از بخش ورود استفاده کنید',
       );
     }
     if (dto.mode === 'register' && !displayName) {
@@ -73,23 +76,7 @@ export class AuthService {
       throw new BadRequestException('کد معرف پیدا نشد');
     }
 
-    const resendSeconds = this.config.get('AUTH_OTP_RESEND_SECONDS', {
-      infer: true,
-    });
-    const latest = await this.prisma.otpChallenge.findFirst({
-      where: { mobile, consumedAt: null },
-      orderBy: { createdAt: 'desc' },
-      select: { createdAt: true },
-    });
-    if (
-      latest &&
-      Date.now() - latest.createdAt.getTime() < resendSeconds * 1000
-    ) {
-      throw new HttpException(
-        'کمی صبر کنید و دوباره کد بگیرید',
-        HttpStatus.TOO_MANY_REQUESTS,
-      );
-    }
+    await this.enforceOtpRateLimit(mobile);
 
     const code = randomInt(100000, 1000000).toString();
     const ttlMinutes = this.config.get('AUTH_OTP_TTL_MINUTES', { infer: true });
@@ -108,7 +95,6 @@ export class AuthService {
       data: {
         mobile,
         expiresInSeconds: ttlMinutes * 60,
-        resendAfterSeconds: resendSeconds,
         ...(this.config.get('OTP_DELIVERY_MODE', { infer: true }) === 'preview'
           ? { developmentCode: code }
           : {}),
@@ -172,33 +158,26 @@ export class AuthService {
       const referrer = challenge.referrerId
         ? await transaction.user.findUnique({
             where: { id: challenge.referrerId },
-            select: { id: true },
+            select: { id: true, isBanned: true },
           })
         : null;
-      const createdUser = await transaction.user.create({
-        data: {
-          mobile,
-          displayName: challenge.displayName ?? `بازیکن ${mobile.slice(-4)}`,
-          referralCode: referralCode!,
-          referredById: referrer?.id,
-        },
-      });
-
-      if (referrer) {
-        await transaction.referralReward.create({
-          data: {
-            referrerId: referrer.id,
-            referredUserId: createdUser.id,
-            points: REFERRAL_REWARD_POINTS,
+      const created = await transaction.user.createMany({
+        data: [
+          {
+            mobile,
+            displayName: challenge.displayName ?? `بازیکن ${mobile.slice(-4)}`,
+            referralCode: referralCode!,
+            referredById: referrer && !referrer.isBanned ? referrer.id : null,
           },
-        });
-        await transaction.user.update({
-          where: { id: referrer.id },
-          data: { referralPoints: { increment: REFERRAL_REWARD_POINTS } },
-        });
+        ],
+        skipDuplicates: true,
+      });
+      if (created.count !== 1) {
+        throw new ConflictException(
+          'این شماره قبلاً حساب دارد؛ از بخش ورود استفاده کنید',
+        );
       }
-
-      return createdUser;
+      return transaction.user.findUniqueOrThrow({ where: { mobile } });
     });
 
     return this.createSession(user, metadata);
@@ -335,6 +314,61 @@ export class AuthService {
     )
       .update(`${mobile}:${code}`)
       .digest('hex');
+  }
+
+  private async enforceOtpRateLimit(mobile: string): Promise<void> {
+    const now = new Date();
+    const windowCutoff = new Date(now.getTime() - OTP_RATE_WINDOW_MS);
+    const nextBlockedUntil = new Date(now.getTime() + OTP_BLOCK_MS);
+    const [state] = await this.prisma.$queryRaw<
+      Array<{ blockedUntil: Date | null }>
+    >(Prisma.sql`
+      INSERT INTO "OtpRateLimit" AS rate (
+        "mobile",
+        "windowStartedAt",
+        "requestCount",
+        "blockedUntil",
+        "updatedAt"
+      )
+      VALUES (${mobile}, ${now}, 1, NULL, ${now})
+      ON CONFLICT ("mobile") DO UPDATE SET
+        "windowStartedAt" = CASE
+          WHEN rate."blockedUntil" IS NOT NULL AND rate."blockedUntil" <= ${now} THEN ${now}
+          WHEN rate."windowStartedAt" <= ${windowCutoff} THEN ${now}
+          ELSE rate."windowStartedAt"
+        END,
+        "requestCount" = CASE
+          WHEN rate."blockedUntil" IS NOT NULL AND rate."blockedUntil" <= ${now} THEN 1
+          WHEN rate."windowStartedAt" <= ${windowCutoff} THEN 1
+          WHEN rate."blockedUntil" > ${now} THEN rate."requestCount"
+          WHEN rate."requestCount" >= ${OTP_FREE_REQUESTS} THEN rate."requestCount"
+          ELSE rate."requestCount" + 1
+        END,
+        "blockedUntil" = CASE
+          WHEN rate."blockedUntil" > ${now} THEN rate."blockedUntil"
+          WHEN rate."blockedUntil" IS NOT NULL AND rate."blockedUntil" <= ${now} THEN NULL
+          WHEN rate."windowStartedAt" <= ${windowCutoff} THEN NULL
+          WHEN rate."requestCount" >= ${OTP_FREE_REQUESTS} THEN ${nextBlockedUntil}
+          ELSE NULL
+        END,
+        "updatedAt" = ${now}
+      RETURNING "blockedUntil"
+    `);
+
+    if (!state?.blockedUntil || state.blockedUntil.getTime() <= now.getTime()) {
+      return;
+    }
+    const retryAfterSeconds = Math.max(
+      1,
+      Math.ceil((state.blockedUntil.getTime() - now.getTime()) / 1_000),
+    );
+    throw new HttpException(
+      {
+        message: 'تعداد درخواست کد زیاد بود؛ کمی صبر کنید',
+        retryAfterSeconds,
+      },
+      HttpStatus.TOO_MANY_REQUESTS,
+    );
   }
 
   private async createUniqueReferralCode(): Promise<string> {

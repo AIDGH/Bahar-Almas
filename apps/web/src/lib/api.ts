@@ -11,6 +11,16 @@ import type {
 
 const API_BASE = '/api/v1';
 
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly retryAfterSeconds?: number,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 export async function getMe(): Promise<User | null> {
   const response = await fetch(`${API_BASE}/auth/me`, {
     credentials: 'include',
@@ -29,7 +39,6 @@ export async function requestOtp(input: {
   return request<{
     mobile: string;
     expiresInSeconds: number;
-    resendAfterSeconds: number;
     developmentCode?: string;
   }>(`${API_BASE}/auth/otp/request`, {
     method: 'POST',
@@ -129,12 +138,16 @@ async function unwrap<T>(response: Response): Promise<T> {
   const payload = (await response.json().catch(() => null)) as {
     data?: T;
     message?: string | string[];
+    retryAfterSeconds?: number;
   } | null;
   if (!response.ok) {
     const message = Array.isArray(payload?.message)
       ? payload.message[0]
       : payload?.message;
-    throw new Error(message ?? 'ارتباط با سرور برقرار نشد');
+    throw new ApiError(
+      message ?? 'ارتباط با سرور برقرار نشد',
+      payload?.retryAfterSeconds,
+    );
   }
   if (!payload || payload.data === undefined) {
     throw new Error('پاسخ سرور قابل خواندن نیست');

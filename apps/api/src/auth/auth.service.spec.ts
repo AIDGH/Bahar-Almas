@@ -1,9 +1,14 @@
-import { ForbiddenException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  HttpException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { createHmac } from 'node:crypto';
 import { Response } from 'express';
 import { EnvironmentVariables } from '../config/environment';
 import { PrismaService } from '../database/prisma.service';
-import { UserRole } from '../generated/prisma/enums';
+import { AuthMode, UserRole } from '../generated/prisma/enums';
 import { AuthService } from './auth.service';
 
 describe('AuthService session cookie', () => {
@@ -71,6 +76,105 @@ describe('AuthService banned sessions', () => {
   });
 });
 
+describe('AuthService OTP requests', () => {
+  it('allows two requests and rate-limits the third request for one minute', async () => {
+    const blockedUntil = new Date(Date.now() + 60_000);
+    const createChallenge = jest.fn().mockResolvedValue({
+      id: 'challenge-id',
+    });
+    const prisma = {
+      user: { findUnique: jest.fn().mockResolvedValue(null) },
+      otpChallenge: {
+        create: createChallenge,
+      },
+      $queryRaw: jest
+        .fn()
+        .mockResolvedValueOnce([{ blockedUntil: null }])
+        .mockResolvedValueOnce([{ blockedUntil: null }])
+        .mockResolvedValueOnce([{ blockedUntil }]),
+    } as unknown as PrismaService;
+    const service = new AuthService(prisma, createAuthConfig());
+    const input = {
+      mode: 'register' as const,
+      mobile: '09123456789',
+      displayName: 'بازیکن تست',
+    };
+
+    await expect(service.requestOtp(input)).resolves.toBeDefined();
+    await expect(service.requestOtp(input)).resolves.toBeDefined();
+    const thirdRequestError = await service
+      .requestOtp(input)
+      .catch((error: unknown) => error);
+    expect(thirdRequestError).toBeInstanceOf(HttpException);
+    expect((thirdRequestError as HttpException).getStatus()).toBe(429);
+    const response = (thirdRequestError as HttpException).getResponse() as {
+      retryAfterSeconds: number;
+    };
+    expect(typeof response.retryAfterSeconds).toBe('number');
+    expect(createChallenge).toHaveBeenCalledTimes(2);
+  });
+
+  it('rejects registration immediately when the mobile already has an account', async () => {
+    const prisma = {
+      user: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'existing-user',
+          isBanned: false,
+        }),
+      },
+    } as unknown as PrismaService;
+    const service = new AuthService(prisma, createAuthConfig());
+
+    await expect(
+      service.requestOtp({
+        mode: 'register',
+        mobile: '09123456789',
+        displayName: 'بازیکن تست',
+      }),
+    ).rejects.toThrow(ConflictException);
+  });
+
+  it('rejects a stale registration challenge if the mobile was created meanwhile', async () => {
+    const secret = 'test-otp-secret-that-is-long-enough';
+    const mobile = '09123456789';
+    const code = '123456';
+    const challenge = {
+      id: 'challenge-id',
+      mobile,
+      displayName: 'بازیکن تست',
+      authMode: AuthMode.REGISTER,
+      referrerId: null,
+      attempts: 0,
+      codeHash: createHmac('sha256', secret)
+        .update(`${mobile}:${code}`)
+        .digest('hex'),
+    };
+    const transaction = {
+      otpChallenge: { update: jest.fn().mockResolvedValue(challenge) },
+      user: {
+        createMany: jest.fn().mockResolvedValue({ count: 0 }),
+        findUniqueOrThrow: jest.fn(),
+      },
+    };
+    const runTransaction = jest.fn(
+      async (
+        callback: (client: typeof transaction) => Promise<unknown>,
+      ): Promise<unknown> => callback(transaction),
+    );
+    const prisma = {
+      otpChallenge: { findFirst: jest.fn().mockResolvedValue(challenge) },
+      user: { findUnique: jest.fn().mockResolvedValue(null) },
+      $transaction: runTransaction,
+    } as unknown as PrismaService;
+    const service = new AuthService(prisma, createAuthConfig(secret));
+
+    await expect(service.verifyOtp(mobile, code, {})).rejects.toThrow(
+      ConflictException,
+    );
+    expect(transaction.user.findUniqueOrThrow).not.toHaveBeenCalled();
+  });
+});
+
 function createService(cookieSecure: boolean) {
   const prisma = {} as PrismaService;
   const config = {
@@ -92,4 +196,15 @@ function createService(cookieSecure: boolean) {
     response,
     service: new AuthService(prisma, config),
   };
+}
+
+function createAuthConfig(secret = 'test-otp-secret-that-is-long-enough') {
+  return {
+    get: jest.fn((key: keyof EnvironmentVariables) => {
+      if (key === 'AUTH_OTP_TTL_MINUTES') return 5;
+      if (key === 'AUTH_OTP_SECRET') return secret;
+      if (key === 'OTP_DELIVERY_MODE') return 'preview';
+      return undefined;
+    }),
+  } as unknown as ConfigService<EnvironmentVariables, true>;
 }

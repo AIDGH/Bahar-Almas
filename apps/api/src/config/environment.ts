@@ -7,7 +7,6 @@ export type EnvironmentVariables = {
   DATABASE_URL: string;
   AUTH_OTP_SECRET: string;
   AUTH_OTP_TTL_MINUTES: number;
-  AUTH_OTP_RESEND_SECONDS: number;
   AUTH_SESSION_DAYS: number;
   AUTH_COOKIE_SECURE: boolean;
   OTP_DELIVERY_MODE: 'preview' | 'disabled';
@@ -30,7 +29,6 @@ export const environmentValidationSchema = Joi.object<EnvironmentVariables>({
     .min(32)
     .default('bahar-almas-development-secret-change-me'),
   AUTH_OTP_TTL_MINUTES: Joi.number().integer().min(2).max(15).default(5),
-  AUTH_OTP_RESEND_SECONDS: Joi.number().integer().min(15).max(300).default(60),
   AUTH_SESSION_DAYS: Joi.number().integer().min(1).max(30).default(7),
   AUTH_COOKIE_SECURE: Joi.boolean()
     .truthy('true')

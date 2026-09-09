@@ -8,7 +8,7 @@
 Client
  ├── Landing UI
  ├── Separate login/register dialog
- ├── Profile + Persian game history + referral link
+ ├── Profile + Persian game history + referral code
  ├── Paginated leaderboard + personal rank
  ├── Admin user management
  └── Canvas game
@@ -59,9 +59,9 @@ Branch `main` هر ۶۰ ثانیه از داخل سرور بررسی می‌شو
 - پس‌زمینه‌ی چوبی ۱۶KB به‌صورت CSS background رندر می‌شود و HUD نارنجی `#EE9F35` با دورخط تیره کنتراست آن را حفظ می‌کند؛ عدد صفر شروع دقیقاً استایل اعداد ۳، ۲ و ۱ Countdown را دارد؛
 - HUD واکنش‌گرا با امتیاز در چپ، Pause در مرکز و تایمر در راست؛
 - Pause هم Gameplay و هم ساعت Monotonic Client را متوقف می‌کند و بودجه‌ی تجمعی آن ۳۰ ثانیه است؛
-- Result overlay و Dialogهای حساب، Scroll بدنه و Overscroll موبایل را تا بسته‌شدن کامل قفل می‌کنند؛
-- پروفایل به‌صورت پنل کشویی سمت راست باز می‌شود و تاریخچه را در صفحه‌های ۵۰تایی از API دریافت می‌کند؛
-- پنل پروفایل روی موبایل از Dynamic Viewport و Safe Area استفاده می‌کند؛ Input و Text Autosizing طوری تنظیم شده‌اند که Safari و WebView هنگام Focus صفحه را ناخواسته Zoom نکنند؛
+- Result overlay با React Portal مستقیماً زیر `body` رندر می‌شود تا بالاتر از بازی و لیدربورد باشد؛ Dialogهای باز Scroll بدنه و Overscroll موبایل را تا بسته‌شدن کامل قفل می‌کنند؛
+- پروفایل به‌صورت Modal مرکزی باز می‌شود و تاریخچه را در صفحه‌های ۵۰تایی از API دریافت می‌کند؛
+- پنل پروفایل روی موبایل فشرده و محدود به Dynamic Viewport است؛ Input و Text Autosizing نیز برای Safari و WebView کنترل شده‌اند؛
 - پنل ادمین فقط برای User دارای نقش `ADMIN` نمایش داده می‌شود و فهرست، جست‌وجو، ویرایش و Ban/Unban کاربران را ارائه می‌کند؛
 - دسترسی API در `src/lib/api.ts` و Same-origin proxy در Development.
 - ابزار WebMCP خواندنی `read_bahar_almas_leaderboard` برای Browserهای پشتیبان؛ نبود پشتیبانی WebMCP روی اجرای عادی سایت اثر ندارد.
@@ -73,6 +73,7 @@ Branch `main` هر ۶۰ ثانیه از داخل سرور بررسی می‌شو
 - NestJS 11؛
 - ValidationPipe سراسری با whitelist؛
 - Cookie Session به‌جای ذخیره‌ی Token در Local Storage؛
+- Rate limit اتمیک PostgreSQL برای دو درخواست OTP در دقیقه و قفل یک‌دقیقه‌ای درخواست سوم؛
 - Prisma 7 با PostgreSQL adapter؛
 - اجبار Timezone هر Connection به UTC برای اعتبارسنجی پایدار زمان بازی؛
 - برنامه‌ی Targetها به‌صورت Deterministic از Seed سرور ساخته می‌شود؛
@@ -80,7 +81,7 @@ Branch `main` هر ۶۰ ثانیه از داخل سرور بررسی می‌شو
 - ضریب Combo پس از اعتبارسنجی Hitهای پایه و بر اساس `gestureId` و زمان Hit در سرور اعمال می‌شود؛
 - Score نهایی داخل Transaction ثبت می‌شود.
 - بازی پیش از ورود با Claim Token تصادفی شروع و Finish می‌شود؛ اتصال نتیجه به User فقط پس از احراز هویت انجام می‌شود؛
-- تاریخچه، مجموع امتیاز، پاداش دعوت و رتبه‌ی شخصی از PostgreSQL خوانده می‌شوند.
+- تاریخچه، مجموع امتیاز، پاداش دعوت و رتبه‌ی شخصی از PostgreSQL خوانده می‌شوند؛ Reward دعوت فقط در اولین Claim امتیازدار ساخته می‌شود.
 - Guard نقش ادمین مستقل از نمایش دکمه در UI است و همه‌ی مسیرهای مدیریت را سمت سرور محافظت می‌کند؛
 - Ban به‌صورت Soft انجام می‌شود: Sessionها باطل، ورود و لیدربورد مسدود و داده‌های حساب/بازی حفظ می‌شوند.
 
