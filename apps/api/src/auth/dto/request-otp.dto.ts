@@ -5,7 +5,6 @@ export class RequestOtpDto {
   mode!: 'login' | 'register';
 
   @IsString()
-  @Length(10, 20)
   mobile!: string;
 
   @IsOptional()

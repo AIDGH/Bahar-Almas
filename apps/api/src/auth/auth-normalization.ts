@@ -34,7 +34,13 @@ export function normalizeIranianMobile(value: string): string {
     .replace(/^\+98/, '0')
     .replace(/^98(?=9)/, '0');
 
-  if (!/^09\d{9}$/.test(local)) {
+  if (!/^\d+$/.test(local)) {
+    throw new BadRequestException('شماره موبایل فقط باید شامل عدد باشد');
+  }
+  if (local.length !== 11) {
+    throw new BadRequestException('شماره موبایل باید ۱۱ رقم باشد');
+  }
+  if (!local.startsWith('09')) {
     throw new BadRequestException('شماره موبایل باید با ۰۹ شروع شود');
   }
   return local;

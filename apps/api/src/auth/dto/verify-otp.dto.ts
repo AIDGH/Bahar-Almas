@@ -1,8 +1,7 @@
-import { IsString, Length, Matches } from 'class-validator';
+import { IsString, Matches } from 'class-validator';
 
 export class VerifyOtpDto {
   @IsString()
-  @Length(10, 20)
   mobile!: string;
 
   @IsString()
