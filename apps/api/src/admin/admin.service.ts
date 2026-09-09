@@ -11,13 +11,19 @@ import {
 import { Prisma } from '../generated/prisma/client';
 import { UserRole } from '../generated/prisma/enums';
 import { PrismaService } from '../database/prisma.service';
+import { AdminUserGroup } from './admin.types';
 import { UpdateAdminUserDto } from './dto/update-admin-user.dto';
 
 @Injectable()
 export class AdminService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getUsers(limit: number, offset: number, searchValue = '') {
+  async getUsers(
+    limit: number,
+    offset: number,
+    searchValue = '',
+    group = AdminUserGroup.USERS,
+  ) {
     const search = searchValue.trim();
     const digits = normalizeDigits(search).replace(/\D/g, '');
     const mobileSearch = digits.startsWith('0098')
@@ -25,26 +31,34 @@ export class AdminService {
       : digits.startsWith('98')
         ? `0${digits.slice(2)}`
         : digits;
-    const where: Prisma.UserWhereInput = search
-      ? {
-          OR: [
-            { displayName: { contains: search, mode: 'insensitive' } },
-            ...(mobileSearch ? [{ mobile: { contains: mobileSearch } }] : []),
-            {
-              referralCode: {
-                contains: search.toUpperCase(),
-                mode: 'insensitive',
+    const groupWhere: Prisma.UserWhereInput =
+      group === AdminUserGroup.ADMINS
+        ? { role: UserRole.ADMIN, isBanned: false }
+        : group === AdminUserGroup.BANNED
+          ? { isBanned: true }
+          : { role: UserRole.USER, isBanned: false };
+    const where: Prisma.UserWhereInput = {
+      ...groupWhere,
+      ...(search
+        ? {
+            OR: [
+              { displayName: { contains: search, mode: 'insensitive' } },
+              ...(mobileSearch ? [{ mobile: { contains: mobileSearch } }] : []),
+              {
+                referralCode: {
+                  contains: search.toUpperCase(),
+                  mode: 'insensitive',
+                },
               },
-            },
-          ],
-        }
-      : {};
+            ],
+          }
+        : {}),
+    };
 
     const [users, total] = await this.prisma.$transaction([
       this.prisma.user.findMany({
         where,
         orderBy: [
-          { isBanned: 'asc' },
           { bestScore: 'desc' },
           { bestScoredAt: 'asc' },
           { createdAt: 'asc' },

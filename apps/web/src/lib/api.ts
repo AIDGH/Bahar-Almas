@@ -1,5 +1,6 @@
 import type {
   AdminUser,
+  AdminUserGroup,
   AdminUsersPage,
   GameHit,
   GameResult,
@@ -102,11 +103,17 @@ export async function updateProfile(displayName: string) {
   });
 }
 
-export async function getAdminUsers(search = '', offset = 0, limit = 25) {
+export async function getAdminUsers(
+  search = '',
+  offset = 0,
+  limit = 25,
+  group: AdminUserGroup = 'users',
+) {
   const params = new URLSearchParams({
     search,
     offset: String(offset),
     limit: String(limit),
+    group,
   });
   return request<AdminUsersPage>(`${API_BASE}/admin/users?${params}`);
 }

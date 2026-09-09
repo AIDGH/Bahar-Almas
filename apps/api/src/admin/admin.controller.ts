@@ -4,6 +4,7 @@ import {
   DefaultValuePipe,
   Get,
   Param,
+  ParseEnumPipe,
   ParseIntPipe,
   ParseUUIDPipe,
   Patch,
@@ -13,6 +14,7 @@ import {
 import { SessionAuthGuard } from '../auth/session-auth.guard';
 import { AdminGuard } from './admin.guard';
 import { AdminService } from './admin.service';
+import { AdminUserGroup } from './admin.types';
 import { UpdateAdminUserDto } from './dto/update-admin-user.dto';
 
 @Controller('admin')
@@ -26,11 +28,18 @@ export class AdminController {
     @Query('offset', new DefaultValuePipe(0), new ParseIntPipe())
     offset: number,
     @Query('search') search = '',
+    @Query(
+      'group',
+      new DefaultValuePipe(AdminUserGroup.USERS),
+      new ParseEnumPipe(AdminUserGroup),
+    )
+    group: AdminUserGroup,
   ) {
     return this.admin.getUsers(
       Math.min(Math.max(limit, 1), 50),
       Math.max(offset, 0),
       search,
+      group,
     );
   }
 

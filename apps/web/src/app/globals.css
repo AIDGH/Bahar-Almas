@@ -1534,11 +1534,36 @@ footer p {
   color: var(--red-dark);
   font-size: 0.9rem;
 }
+.admin-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 20px;
+  padding: 5px;
+  border-radius: 15px;
+  background: #f1e7da;
+}
+.admin-tabs button {
+  min-width: 0;
+  min-height: 43px;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+.admin-tabs button.is-active {
+  background: var(--ink);
+  color: var(--yellow);
+  box-shadow: 0 5px 14px rgba(32, 16, 12, 0.2);
+}
 .admin-search {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 8px;
-  margin: 22px 0 16px;
+  margin: 12px 0 16px;
 }
 .admin-search input {
   min-width: 0;
@@ -2157,6 +2182,16 @@ footer p {
   }
   .admin-heading {
     padding-left: 39px;
+  }
+  .admin-tabs {
+    gap: 3px;
+    margin-top: 14px;
+    padding: 4px;
+  }
+  .admin-tabs button {
+    min-height: 40px;
+    padding-inline: 4px;
+    font-size: 0.7rem;
   }
   .admin-search {
     grid-template-columns: 1fr auto;

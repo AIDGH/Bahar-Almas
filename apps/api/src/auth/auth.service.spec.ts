@@ -77,6 +77,29 @@ describe('AuthService banned sessions', () => {
 });
 
 describe('AuthService OTP requests', () => {
+  it('blocks fresh administrator login while production exposes preview OTP codes', async () => {
+    const queryRaw = jest.fn();
+    const prisma = {
+      user: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'admin-id',
+          role: UserRole.ADMIN,
+          isBanned: false,
+        }),
+      },
+      $queryRaw: queryRaw,
+    } as unknown as PrismaService;
+    const service = new AuthService(
+      prisma,
+      createAuthConfig(undefined, 'production'),
+    );
+
+    await expect(
+      service.requestOtp({ mode: 'login', mobile: '09123456789' }),
+    ).rejects.toThrow(ForbiddenException);
+    expect(queryRaw).not.toHaveBeenCalled();
+  });
+
   it('allows two requests and rate-limits the third request for one minute', async () => {
     const blockedUntil = new Date(Date.now() + 60_000);
     const createChallenge = jest.fn().mockResolvedValue({
@@ -171,7 +194,53 @@ describe('AuthService OTP requests', () => {
     await expect(service.verifyOtp(mobile, code, {})).rejects.toThrow(
       ConflictException,
     );
+    expect(transaction.user.createMany).toHaveBeenCalledWith({
+      data: [expect.objectContaining({ role: UserRole.USER })],
+      skipDuplicates: true,
+    });
     expect(transaction.user.findUniqueOrThrow).not.toHaveBeenCalled();
+  });
+
+  it('blocks an already issued administrator challenge in production preview mode', async () => {
+    const secret = 'test-otp-secret-that-is-long-enough';
+    const mobile = '09123456789';
+    const code = '123456';
+    const challenge = {
+      id: 'challenge-id',
+      mobile,
+      authMode: AuthMode.LOGIN,
+      attempts: 0,
+      codeHash: createHmac('sha256', secret)
+        .update(`${mobile}:${code}`)
+        .digest('hex'),
+    };
+    const transaction = {
+      otpChallenge: { update: jest.fn().mockResolvedValue(challenge) },
+      user: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'admin-id',
+          role: UserRole.ADMIN,
+          isBanned: false,
+        }),
+      },
+    };
+    const runTransaction = jest.fn(
+      async (
+        callback: (client: typeof transaction) => Promise<unknown>,
+      ): Promise<unknown> => callback(transaction),
+    );
+    const prisma = {
+      otpChallenge: { findFirst: jest.fn().mockResolvedValue(challenge) },
+      $transaction: runTransaction,
+    } as unknown as PrismaService;
+    const service = new AuthService(
+      prisma,
+      createAuthConfig(secret, 'production'),
+    );
+
+    await expect(service.verifyOtp(mobile, code, {})).rejects.toThrow(
+      ForbiddenException,
+    );
   });
 });
 
@@ -198,9 +267,13 @@ function createService(cookieSecure: boolean) {
   };
 }
 
-function createAuthConfig(secret = 'test-otp-secret-that-is-long-enough') {
+function createAuthConfig(
+  secret = 'test-otp-secret-that-is-long-enough',
+  nodeEnvironment: EnvironmentVariables['NODE_ENV'] = 'test',
+) {
   return {
     get: jest.fn((key: keyof EnvironmentVariables) => {
+      if (key === 'NODE_ENV') return nodeEnvironment;
       if (key === 'AUTH_OTP_TTL_MINUTES') return 5;
       if (key === 'AUTH_OTP_SECRET') return secret;
       if (key === 'OTP_DELIVERY_MODE') return 'preview';

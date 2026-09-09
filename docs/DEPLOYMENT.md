@@ -71,7 +71,7 @@ systemctl start bahar-almas-update.service
 
 فایل `/opt/bahar-almas/.env` فقط روی سرور قرار دارد و وارد Git نمی‌شود. نمونه‌ی بدون Secret در `deploy/.env.example` نگهداری می‌شود.
 
-تا زمان اتصال نجوا، `OTP_DELIVERY_MODE=preview` فقط برای QA محدود قابل استفاده است و نباید در انتشار عمومی باقی بماند.
+تا زمان اتصال نجوا، `OTP_DELIVERY_MODE=preview` فقط برای QA محدود قابل استفاده است و نباید در انتشار عمومی باقی بماند. در این حالت ورود تازه‌ی حساب ادمین در Production عمداً بسته است؛ نشست معتبر موجود حفظ می‌شود و ورود تازه پس از تغییر Delivery Mode به Provider امن دوباره فعال خواهد شد.
 
 روی IP و HTTP موقت، `AUTH_COOKIE_SECURE=false` برای تست ورود لازم است. این استثنا فقط برای QA است و باید همزمان با فعال‌شدن دامنه و HTTPS به `true` تغییر کند.
 

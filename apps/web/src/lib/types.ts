@@ -24,6 +24,8 @@ export type AdminUsersPage = {
   nextOffset: number | null;
 };
 
+export type AdminUserGroup = 'admins' | 'users' | 'banned';
+
 export type LeaderboardEntry = {
   rank: number;
   userId: string;

@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { getAdminUsers, updateAdminUser } from '@/lib/api';
-import type { AdminUser, User } from '@/lib/types';
+import type { AdminUser, AdminUserGroup, User } from '@/lib/types';
 import { formatScore } from './leaderboard';
 
 type AdminDialogProps = {
@@ -13,6 +13,11 @@ type AdminDialogProps = {
 };
 
 const PAGE_SIZE = 25;
+const ADMIN_GROUPS: Array<{ id: AdminUserGroup; label: string }> = [
+  { id: 'users', label: 'کاربران عادی' },
+  { id: 'admins', label: 'ادمین‌ها' },
+  { id: 'banned', label: 'مسدودشده‌ها' },
+];
 
 export function AdminDialog({
   open,
@@ -25,6 +30,7 @@ export function AdminDialog({
   const [nextOffset, setNextOffset] = useState<number | null>(null);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
+  const [activeGroup, setActiveGroup] = useState<AdminUserGroup>('users');
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [editingId, setEditingId] = useState<string>();
@@ -33,26 +39,32 @@ export function AdminDialog({
   const [savingId, setSavingId] = useState<string>();
   const [error, setError] = useState('');
 
-  const loadUsers = useCallback(async (nextSearch: string) => {
-    setLoading(true);
-    setError('');
-    try {
-      const page = await getAdminUsers(nextSearch, 0, PAGE_SIZE);
-      setUsers(page.users);
-      setTotal(page.total);
-      setNextOffset(page.nextOffset);
-    } catch (loadError) {
-      setError(messageOf(loadError));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const loadUsers = useCallback(
+    async (nextSearch: string, group: AdminUserGroup) => {
+      setLoading(true);
+      setError('');
+      try {
+        const page = await getAdminUsers(nextSearch, 0, PAGE_SIZE, group);
+        setUsers(page.users);
+        setTotal(page.total);
+        setNextOffset(page.nextOffset);
+      } catch (loadError) {
+        setError(messageOf(loadError));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!open) return;
-    const loadTimer = window.setTimeout(() => void loadUsers(search), 0);
+    const loadTimer = window.setTimeout(
+      () => void loadUsers(search, activeGroup),
+      0,
+    );
     return () => window.clearTimeout(loadTimer);
-  }, [loadUsers, open, search]);
+  }, [activeGroup, loadUsers, open, search]);
 
   useEffect(() => {
     if (!open) return;
@@ -69,7 +81,7 @@ export function AdminDialog({
     event.preventDefault();
     setEditingId(undefined);
     setSearch(searchInput.trim());
-    if (search === searchInput.trim()) void loadUsers(search);
+    if (search === searchInput.trim()) void loadUsers(search, activeGroup);
   }
 
   function startEditing(user: AdminUser) {
@@ -108,7 +120,8 @@ export function AdminDialog({
       const updated = await updateAdminUser(user.id, {
         isBanned: nextBanned,
       });
-      replaceUser(updated);
+      if (updated.id === currentUser.id) onCurrentUserUpdated(updated);
+      await loadUsers(search, activeGroup);
     } catch (saveError) {
       setError(messageOf(saveError));
     } finally {
@@ -121,7 +134,12 @@ export function AdminDialog({
     setLoadingMore(true);
     setError('');
     try {
-      const page = await getAdminUsers(search, nextOffset, PAGE_SIZE);
+      const page = await getAdminUsers(
+        search,
+        nextOffset,
+        PAGE_SIZE,
+        activeGroup,
+      );
       setUsers((current) => [...current, ...page.users]);
       setNextOffset(page.nextOffset);
     } catch (loadError) {
@@ -170,6 +188,23 @@ export function AdminDialog({
           <b>{toPersianNumber(total)} کاربر</b>
         </header>
 
+        <nav className="admin-tabs" aria-label="دسته‌بندی کاربران">
+          {ADMIN_GROUPS.map((group) => (
+            <button
+              type="button"
+              className={activeGroup === group.id ? 'is-active' : undefined}
+              aria-current={activeGroup === group.id ? 'page' : undefined}
+              key={group.id}
+              onClick={() => {
+                setEditingId(undefined);
+                setActiveGroup(group.id);
+              }}
+            >
+              {group.label}
+            </button>
+          ))}
+        </nav>
+
         <form className="admin-search" onSubmit={submitSearch}>
           <input
             value={searchInput}
@@ -208,7 +243,7 @@ export function AdminDialog({
                 key={user.id}
               >
                 <div className="admin-user-rank">
-                  {user.isBanned ? '—' : toPersianNumber(index + 1)}
+                  {activeGroup === 'users' ? toPersianNumber(index + 1) : '—'}
                 </div>
                 <div className="admin-user-main">
                   <div className="admin-user-name">
@@ -304,7 +339,15 @@ export function AdminDialog({
             )}
           </div>
         ) : (
-          <div className="admin-empty">کاربری با این مشخصات پیدا نشد.</div>
+          <div className="admin-empty">
+            {search
+              ? 'کاربری با این مشخصات پیدا نشد.'
+              : activeGroup === 'admins'
+                ? 'ادمین دیگری وجود ندارد.'
+                : activeGroup === 'banned'
+                  ? 'کاربر مسدودشده‌ای وجود ندارد.'
+                  : 'هنوز کاربر عادی‌ای وجود ندارد.'}
+          </div>
         )}
       </section>
     </div>
@@ -312,7 +355,6 @@ export function AdminDialog({
 }
 
 function compareAdminUsers(left: AdminUser, right: AdminUser): number {
-  if (left.isBanned !== right.isBanned) return left.isBanned ? 1 : -1;
   return right.bestScore - left.bestScore;
 }
 

@@ -43,7 +43,7 @@ export class AuthService {
     const displayName = dto.displayName?.trim().replace(/\s+/g, ' ');
     const existingUser = await this.prisma.user.findUnique({
       where: { mobile },
-      select: { id: true, isBanned: true },
+      select: { id: true, role: true, isBanned: true },
     });
     if (existingUser?.isBanned) {
       throw new ForbiddenException('این شماره از شرکت در مسابقه مسدود شده است');
@@ -51,6 +51,15 @@ export class AuthService {
     if (dto.mode === 'login' && !existingUser) {
       throw new BadRequestException(
         'حسابی با این شماره پیدا نشد؛ ابتدا ثبت‌نام کنید',
+      );
+    }
+    if (
+      dto.mode === 'login' &&
+      existingUser?.role === UserRole.ADMIN &&
+      this.isProductionOtpPreview()
+    ) {
+      throw new ForbiddenException(
+        'ورود تازه ادمین تا اتصال پیامک امن غیرفعال است',
       );
     }
     if (dto.mode === 'register' && existingUser) {
@@ -152,6 +161,14 @@ export class AuthService {
             'این حساب از شرکت در مسابقه مسدود شده است',
           );
         }
+        if (
+          existingUser.role === UserRole.ADMIN &&
+          this.isProductionOtpPreview()
+        ) {
+          throw new ForbiddenException(
+            'ورود تازه ادمین تا اتصال پیامک امن غیرفعال است',
+          );
+        }
         return existingUser;
       }
 
@@ -168,6 +185,7 @@ export class AuthService {
             displayName: challenge.displayName ?? `بازیکن ${mobile.slice(-4)}`,
             referralCode: referralCode!,
             referredById: referrer && !referrer.isBanned ? referrer.id : null,
+            role: UserRole.USER,
           },
         ],
         skipDuplicates: true,
@@ -314,6 +332,13 @@ export class AuthService {
     )
       .update(`${mobile}:${code}`)
       .digest('hex');
+  }
+
+  private isProductionOtpPreview(): boolean {
+    return (
+      this.config.get('NODE_ENV', { infer: true }) === 'production' &&
+      this.config.get('OTP_DELIVERY_MODE', { infer: true }) === 'preview'
+    );
   }
 
   private async enforceOtpRateLimit(mobile: string): Promise<void> {
