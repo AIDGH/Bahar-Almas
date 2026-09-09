@@ -74,7 +74,7 @@
 - TypeScript برای Web و API بدون خطا؛
 - Lint بدون Error یا Warning؛
 - Build Production موفق برای NestJS و Next.js؛
-- ۱۶ تست واحد موفق برای Schedule نسخه‌بندی‌شده، Burst و فاصله‌ی بازیابی، سرعت/زاویه‌ی پرتاب، Combo scoring، افزایش سختی، Hit validation، تنظیم امن Cookie، نشست کاربر مسدود و Guard ادمین؛
+- ۲۴ تست واحد موفق برای Schedule نسخه‌بندی‌شده، Burst و فاصله‌ی بازیابی، سرعت/زاویه‌ی پرتاب، Combo scoring، افزایش سختی، Hit validation، تنظیم امن Cookie، درخواست فوری OTP، خطاهای شماره موبایل، نشست کاربر مسدود و Guard ادمین؛
 - تست واقعی OTP → Session → Game start → Server-validated finish → Leaderboard روی PostgreSQL محلی؛
 - تست یکپارچه‌ی محلی بازی مهمان → Finish معتبر → ثبت‌نام → Claim → تاریخچه پروفایل؛
 - تست یکپارچه‌ی ورود مستقل، نام نمایشی تکراری، پاداش ۱٬۰۰۰ امتیازی معرف، دو صفحه لیدربورد و رتبه‌ی شخصی؛
