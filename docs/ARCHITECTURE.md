@@ -61,6 +61,7 @@ Branch `main` هر ۶۰ ثانیه از داخل سرور بررسی می‌شو
 - Pause هم Gameplay و هم ساعت Monotonic Client را متوقف می‌کند و بودجه‌ی تجمعی آن ۳۰ ثانیه است؛
 - Result overlay و Dialogهای حساب، Scroll بدنه و Overscroll موبایل را تا بسته‌شدن کامل قفل می‌کنند؛
 - پروفایل به‌صورت پنل کشویی سمت راست باز می‌شود و تاریخچه را در صفحه‌های ۵۰تایی از API دریافت می‌کند؛
+- پنل پروفایل روی موبایل از Dynamic Viewport و Safe Area استفاده می‌کند؛ Input و Text Autosizing طوری تنظیم شده‌اند که Safari و WebView هنگام Focus صفحه را ناخواسته Zoom نکنند؛
 - پنل ادمین فقط برای User دارای نقش `ADMIN` نمایش داده می‌شود و فهرست، جست‌وجو، ویرایش و Ban/Unban کاربران را ارائه می‌کند؛
 - دسترسی API در `src/lib/api.ts` و Same-origin proxy در Development.
 - ابزار WebMCP خواندنی `read_bahar_almas_leaderboard` برای Browserهای پشتیبان؛ نبود پشتیبانی WebMCP روی اجرای عادی سایت اثر ندارد.

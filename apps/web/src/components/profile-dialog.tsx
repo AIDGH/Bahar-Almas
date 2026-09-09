@@ -1,10 +1,7 @@
 'use client';
 
-import { FormEvent, useEffect, useMemo, useState } from 'react';
-import {
-  getProfile,
-  updateProfile as saveProfile,
-} from '@/lib/api';
+import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { getProfile, updateProfile as saveProfile } from '@/lib/api';
 import type { Profile, User } from '@/lib/types';
 import { formatScore } from './leaderboard';
 
@@ -29,6 +26,13 @@ export function ProfileDialog({
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
 
+  const closeDialog = useCallback(() => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    onClose();
+  }, [onClose]);
+
   useEffect(() => {
     if (!open) return;
     void getProfile()
@@ -43,11 +47,11 @@ export function ProfileDialog({
   useEffect(() => {
     if (!open) return;
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') closeDialog();
     };
     window.addEventListener('keydown', closeOnEscape);
     return () => window.removeEventListener('keydown', closeOnEscape);
-  }, [onClose, open]);
+  }, [closeDialog, open]);
 
   const referralUrl = useMemo(() => {
     if (!profile || typeof window === 'undefined') return '';
@@ -66,7 +70,7 @@ export function ProfileDialog({
     setError('');
     try {
       const updated = await saveProfile(displayName);
-      setProfile((current) => current ? { ...current, ...updated } : current);
+      setProfile((current) => (current ? { ...current, ...updated } : current));
       onUserUpdated(updated);
     } catch (saveError) {
       setError(messageOf(saveError));
@@ -123,7 +127,7 @@ export function ProfileDialog({
       className="dialog-backdrop profile-backdrop"
       role="presentation"
       onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
+        if (event.target === event.currentTarget) closeDialog();
       }}
     >
       <section
@@ -132,7 +136,12 @@ export function ProfileDialog({
         aria-modal="true"
         aria-labelledby="profile-title"
       >
-        <button className="dialog-close" type="button" onClick={onClose} aria-label="بستن">
+        <button
+          className="dialog-close"
+          type="button"
+          onClick={closeDialog}
+          aria-label="بستن"
+        >
           ×
         </button>
         <div className="profile-heading">
@@ -161,7 +170,12 @@ export function ProfileDialog({
                     maxLength={40}
                     required
                   />
-                  <button type="submit" disabled={saving || displayName.trim() === profile.displayName}>
+                  <button
+                    type="submit"
+                    disabled={
+                      saving || displayName.trim() === profile.displayName
+                    }
+                  >
                     {saving ? '…' : 'ذخیره'}
                   </button>
                 </div>
@@ -173,17 +187,31 @@ export function ProfileDialog({
             </div>
 
             <div className="profile-stats">
-              <article><span>بالاترین رکورد</span><strong>{formatScore(profile.bestScore)}</strong></article>
-              <article><span>مجموع بازی‌ها</span><strong>{formatScore(profile.totalGameScore)}</strong></article>
-              <article><span>امتیاز دعوت</span><strong>{formatScore(profile.referralPoints)}</strong></article>
-              <article><span>امتیاز کل</span><strong>{formatScore(profile.totalScore)}</strong></article>
+              <article>
+                <span>بالاترین رکورد</span>
+                <strong>{formatScore(profile.bestScore)}</strong>
+              </article>
+              <article>
+                <span>مجموع بازی‌ها</span>
+                <strong>{formatScore(profile.totalGameScore)}</strong>
+              </article>
+              <article>
+                <span>امتیاز دعوت</span>
+                <strong>{formatScore(profile.referralPoints)}</strong>
+              </article>
+              <article>
+                <span>امتیاز کل</span>
+                <strong>{formatScore(profile.totalScore)}</strong>
+              </article>
             </div>
 
             <div className="referral-card">
               <div>
                 <span>کد معرف اختصاصی تو</span>
                 <strong dir="ltr">{profile.referralCode}</strong>
-                <small>هر ثبت‌نام موفق با این کد، ۱٬۰۰۰ امتیاز برای تو دارد.</small>
+                <small>
+                  هر ثبت‌نام موفق با این کد، ۱٬۰۰۰ امتیاز برای تو دارد.
+                </small>
                 <code dir="ltr">{referralUrl}</code>
               </div>
               <button type="button" onClick={copyReferralLink}>
@@ -191,11 +219,16 @@ export function ProfileDialog({
               </button>
             </div>
 
-            <section className="game-history" aria-labelledby="game-history-title">
+            <section
+              className="game-history"
+              aria-labelledby="game-history-title"
+            >
               <div className="history-heading">
                 <div>
                   <h3 id="game-history-title">تاریخچه کامل بازی‌ها</h3>
-                  <small>تاریخ و ساعت بر اساس تقویم شمسی نمایش داده می‌شود.</small>
+                  <small>
+                    تاریخ و ساعت بر اساس تقویم شمسی نمایش داده می‌شود.
+                  </small>
                 </div>
                 <span>{toPersianNumber(profile.totalGames)} بازی</span>
               </div>
@@ -207,22 +240,35 @@ export function ProfileDialog({
                         <span>امتیاز</span>
                         <strong>{formatScore(game.score)}</strong>
                       </div>
-                      <time dateTime={game.playedAt}>{formatPersianDate(game.playedAt)}</time>
+                      <time dateTime={game.playedAt}>
+                        {formatPersianDate(game.playedAt)}
+                      </time>
                     </li>
                   ))}
                 </ol>
               ) : (
-                <p className="empty-history">هنوز رکوردی برای این حساب ثبت نشده است.</p>
+                <p className="empty-history">
+                  هنوز رکوردی برای این حساب ثبت نشده است.
+                </p>
               )}
               {profile.nextOffset !== null && (
-                <button className="history-more" type="button" onClick={loadMoreGames} disabled={loadingMore}>
+                <button
+                  className="history-more"
+                  type="button"
+                  onClick={loadMoreGames}
+                  disabled={loadingMore}
+                >
                   {loadingMore ? 'در حال دریافت…' : 'نمایش ادامه تاریخچه'}
                 </button>
               )}
             </section>
           </div>
         ) : null}
-        {error && <div className="form-error" role="alert">{error}</div>}
+        {error && (
+          <div className="form-error" role="alert">
+            {error}
+          </div>
+        )}
       </section>
     </div>
   );
@@ -244,5 +290,7 @@ function toPersianNumber(value: number): string {
 }
 
 function messageOf(error: unknown): string {
-  return error instanceof Error ? error.message : 'خطای پیش‌بینی‌نشده‌ای رخ داد';
+  return error instanceof Error
+    ? error.message
+    : 'خطای پیش‌بینی‌نشده‌ای رخ داد';
 }
