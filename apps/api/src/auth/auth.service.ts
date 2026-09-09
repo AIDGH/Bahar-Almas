@@ -73,6 +73,24 @@ export class AuthService {
       throw new BadRequestException('کد معرف پیدا نشد');
     }
 
+    const resendSeconds = this.config.get('AUTH_OTP_RESEND_SECONDS', {
+      infer: true,
+    });
+    const latest = await this.prisma.otpChallenge.findFirst({
+      where: { mobile, consumedAt: null },
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true },
+    });
+    if (
+      latest &&
+      Date.now() - latest.createdAt.getTime() < resendSeconds * 1000
+    ) {
+      throw new HttpException(
+        'کمی صبر کنید و دوباره کد بگیرید',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
     const code = randomInt(100000, 1000000).toString();
     const ttlMinutes = this.config.get('AUTH_OTP_TTL_MINUTES', { infer: true });
     const challenge = await this.prisma.otpChallenge.create({
@@ -90,6 +108,7 @@ export class AuthService {
       data: {
         mobile,
         expiresInSeconds: ttlMinutes * 60,
+        resendAfterSeconds: resendSeconds,
         ...(this.config.get('OTP_DELIVERY_MODE', { infer: true }) === 'preview'
           ? { developmentCode: code }
           : {}),
