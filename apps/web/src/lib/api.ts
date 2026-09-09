@@ -29,7 +29,6 @@ export async function requestOtp(input: {
   return request<{
     mobile: string;
     expiresInSeconds: number;
-    resendAfterSeconds: number;
     developmentCode?: string;
   }>(`${API_BASE}/auth/otp/request`, {
     method: 'POST',

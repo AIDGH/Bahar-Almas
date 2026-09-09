@@ -71,6 +71,40 @@ describe('AuthService banned sessions', () => {
   });
 });
 
+describe('AuthService OTP requests', () => {
+  it('allows an immediate replacement OTP request', async () => {
+    const create = jest
+      .fn()
+      .mockResolvedValueOnce({ id: 'first-challenge' })
+      .mockResolvedValueOnce({ id: 'second-challenge' });
+    const prisma = {
+      user: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'active-user',
+          isBanned: false,
+        }),
+      },
+      otpChallenge: { create },
+    } as unknown as PrismaService;
+    const config = {
+      get: jest.fn((key: keyof EnvironmentVariables) => {
+        if (key === 'AUTH_OTP_SECRET') {
+          return 'bahar-almas-otp-test-secret-long-enough';
+        }
+        if (key === 'AUTH_OTP_TTL_MINUTES') return 5;
+        if (key === 'OTP_DELIVERY_MODE') return 'preview';
+        return undefined;
+      }),
+    } as unknown as ConfigService<EnvironmentVariables, true>;
+    const service = new AuthService(prisma, config);
+
+    await service.requestOtp({ mode: 'login', mobile: '09912184701' });
+    await service.requestOtp({ mode: 'login', mobile: '09912184701' });
+
+    expect(create).toHaveBeenCalledTimes(2);
+  });
+});
+
 function createService(cookieSecure: boolean) {
   const prisma = {} as PrismaService;
   const config = {

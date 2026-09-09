@@ -30,6 +30,7 @@
 - [x] افزودن Docker Compose، Reverse Proxy، Migration و چرخه‌ی Auto-deploy از Branch `main`؛
 - [x] اجرای اولین Migration و تأیید Health Check عمومی Web و API روی IP سرور؛
 - [ ] اتصال SMS Provider و خاموش‌کردن OTP Preview؛
+- [ ] بازگرداندن Rate Limit اشتراکی درخواست OTP در Provider/Edge هنگام اتصال SMS واقعی؛
 - [ ] فعال‌کردن HTTPS و بازگرداندن `AUTH_COOKIE_SECURE=true`؛
 - [ ] تعریف Limit روزانه‌ی شرکت در کمپین؛
 - [ ] افزودن Rate Limit مبتنی بر IP/device برای Start عمومی بازی؛
