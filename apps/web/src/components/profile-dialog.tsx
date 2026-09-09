@@ -40,6 +40,15 @@ export function ProfileDialog({
       .finally(() => setLoading(false));
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [onClose, open]);
+
   const referralUrl = useMemo(() => {
     if (!profile || typeof window === 'undefined') return '';
     const url = new URL('/', window.location.origin);
@@ -110,20 +119,31 @@ export function ProfileDialog({
   }
 
   return (
-    <div className="dialog-backdrop profile-backdrop" role="presentation" onMouseDown={onClose}>
+    <div
+      className="dialog-backdrop profile-backdrop"
+      role="presentation"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
       <section
         className="profile-dialog"
         role="dialog"
         aria-modal="true"
         aria-labelledby="profile-title"
-        onMouseDown={(event) => event.stopPropagation()}
       >
         <button className="dialog-close" type="button" onClick={onClose} aria-label="بستن">
           ×
         </button>
         <div className="profile-heading">
-          <span>حساب بازیکن</span>
-          <h2 id="profile-title">پروفایل من</h2>
+          <div className="profile-heading-avatar" aria-hidden="true">
+            {user.displayName.trim().charAt(0) || 'ب'}
+          </div>
+          <div>
+            <span>حساب بازیکن</span>
+            <h2 id="profile-title">پروفایل من</h2>
+            <p>اطلاعات حساب، لینک دعوت و تمام رکوردهای ثبت‌شده‌ات</p>
+          </div>
         </div>
 
         {loading && !profile ? (
@@ -164,6 +184,7 @@ export function ProfileDialog({
                 <span>کد معرف اختصاصی تو</span>
                 <strong dir="ltr">{profile.referralCode}</strong>
                 <small>هر ثبت‌نام موفق با این کد، ۱٬۰۰۰ امتیاز برای تو دارد.</small>
+                <code dir="ltr">{referralUrl}</code>
               </div>
               <button type="button" onClick={copyReferralLink}>
                 {copied ? 'کپی شد ✓' : 'کپی لینک دعوت'}
@@ -172,7 +193,10 @@ export function ProfileDialog({
 
             <section className="game-history" aria-labelledby="game-history-title">
               <div className="history-heading">
-                <h3 id="game-history-title">تاریخچه بازی‌ها</h3>
+                <div>
+                  <h3 id="game-history-title">تاریخچه کامل بازی‌ها</h3>
+                  <small>تاریخ و ساعت بر اساس تقویم شمسی نمایش داده می‌شود.</small>
+                </div>
                 <span>{toPersianNumber(profile.totalGames)} بازی</span>
               </div>
               {profile.games.length ? (
@@ -192,7 +216,7 @@ export function ProfileDialog({
               )}
               {profile.nextOffset !== null && (
                 <button className="history-more" type="button" onClick={loadMoreGames} disabled={loadingMore}>
-                  {loadingMore ? 'در حال دریافت…' : 'نمایش بازی‌های بیشتر'}
+                  {loadingMore ? 'در حال دریافت…' : 'نمایش ادامه تاریخچه'}
                 </button>
               )}
             </section>

@@ -8,7 +8,9 @@
 - [x] کد و لینک UTM یکتا و پاداش ۱٬۰۰۰ امتیازی معرف؛
 - [x] ده رکورد اول، Scroll کل لیدربورد و رتبه‌ی متمایز User فعلی؛
 - [x] اجرای Migration و تست یکپارچه‌ی جریان‌های جدید روی PostgreSQL موقت محلی؛
-- [ ] اجرای Migration روی PostgreSQL محیط QA؛
+- [x] اجرای Migration بازی مهمان/پروفایل/دعوت روی PostgreSQL محیط مستقر؛
+- [x] قفل Scroll و تعامل صفحه‌ی پشت تا بسته‌شدن کارت نتیجه؛
+- [x] منوی پروفایل موبایل‌محور با اطلاعات حساب، دعوت و تاریخچه‌ی شمسی؛
 - [ ] تست دستی کامل Guest Game → Result → Login/Register → Claim → Profile → Leaderboard؛
 - [ ] تست واقعی روی iPhone Safari و چند Android Chrome؛
 - [ ] تست Android Chrome با هر دو حالت فعال و غیرفعال `Remove animations`؛ در هر دو حالت Countdown و خرچ/خروچ باید Motion کامل داشته باشند و Combo در حالت کاهش Motion ثابت دیده شود؛

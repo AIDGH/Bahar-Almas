@@ -43,6 +43,7 @@ export function CampaignGame() {
   const [initialReferralCode, setInitialReferralCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const overlayOpen = Boolean(result || showAuth || showProfile);
 
   const refreshLeaderboard = useCallback(async () => {
     try {
@@ -89,6 +90,39 @@ export function CampaignGame() {
       window.setTimeout(() => setInitialReferralCode(referralCode), 0);
     }
   }, [refreshLeaderboard]);
+
+  useEffect(() => {
+    if (!overlayOpen) return;
+    const scrollY = window.scrollY;
+    const body = document.body;
+    const previousStyles = {
+      position: body.style.position,
+      top: body.style.top,
+      left: body.style.left,
+      right: body.style.right,
+      width: body.style.width,
+      overflow: body.style.overflow,
+    };
+
+    document.documentElement.classList.add('has-modal');
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.left = '0';
+    body.style.right = '0';
+    body.style.width = '100%';
+    body.style.overflow = 'hidden';
+
+    return () => {
+      document.documentElement.classList.remove('has-modal');
+      body.style.position = previousStyles.position;
+      body.style.top = previousStyles.top;
+      body.style.left = previousStyles.left;
+      body.style.right = previousStyles.right;
+      body.style.width = previousStyles.width;
+      body.style.overflow = previousStyles.overflow;
+      window.scrollTo(0, scrollY);
+    };
+  }, [overlayOpen]);
 
   useEffect(() => {
     const context = document.modelContext;
@@ -265,11 +299,22 @@ export function CampaignGame() {
         </nav>
         {user ? (
           <div className="user-chip">
-            <button className="profile-trigger" type="button" onClick={() => setShowProfile(true)}>
-              <span>{user.displayName}</span>
-              <b>{formatScore(user.bestScore)}</b>
+            <button
+              className="profile-trigger"
+              type="button"
+              aria-haspopup="dialog"
+              onClick={() => setShowProfile(true)}
+            >
+              <span className="profile-avatar" aria-hidden="true">
+                {user.displayName.trim().charAt(0) || 'ب'}
+              </span>
+              <span className="profile-trigger-copy">
+                <small>پروفایل من</small>
+                <strong>{user.displayName}</strong>
+              </span>
+              <span className="profile-chevron" aria-hidden="true">‹</span>
             </button>
-            <button type="button" onClick={handleLogout}>خروج</button>
+            <button className="logout-button" type="button" onClick={handleLogout}>خروج</button>
           </div>
         ) : (
           <button className="header-login" type="button" onClick={() => openAuth('login')}>
@@ -315,7 +360,10 @@ export function CampaignGame() {
               {result && (
                 <div
                   className="result-backdrop"
-                  onPointerDown={(event) => {
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="نتیجه بازی"
+                  onClick={(event) => {
                     if (event.target === event.currentTarget) setResult(undefined);
                   }}
                 >
@@ -345,6 +393,7 @@ export function CampaignGame() {
                         {user ? 'ثبت رکورد' : 'ورود یا ثبت‌نام و ثبت رکورد'}
                       </button>
                     )}
+                    <small className="result-dismiss-hint">برای بستن، بیرون کارت بزن</small>
                   </div>
                 </div>
               )}

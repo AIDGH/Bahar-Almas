@@ -78,7 +78,7 @@ export async function claimGame(sessionId: string, claimToken: string) {
   });
 }
 
-export async function getProfile(offset = 0, limit = 20) {
+export async function getProfile(offset = 0, limit = 50) {
   return request<Profile>(`${API_BASE}/profile?limit=${limit}&offset=${offset}`);
 }
 
