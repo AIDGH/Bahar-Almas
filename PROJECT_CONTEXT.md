@@ -82,6 +82,7 @@
 - تست یکپارچه‌ی ورود مستقل، نام نمایشی تکراری، دو صفحه لیدربورد و رتبه‌ی شخصی؛
 - اعمال موفق Migration بازی مهمان/پروفایل/دعوت روی PostgreSQL Production و تأیید Healthy بودن PostgreSQL، API و Web پس از انتشار؛
 - اعمال موفق Migration نقش ادمین/مسدودی روی PostgreSQL Production؛ پاک‌سازی کنترل‌شده‌ی داده‌های قدیمی کمپین و ساخت حساب اولیه‌ی ادمین؛
+- اعمال موفق Migration محدودیت OTP روی PostgreSQL Production و تأیید حفظ حساب ادمین و Healthy بودن Web/API؛
 - حذف کامل داده‌ی آزمایشی پس از پایان تست.
 
 ## ۳. معماری
@@ -231,4 +232,4 @@ Web روی پورت ۳۰۰۲ و API روی پورت ۴۰۰۲ اجرا می‌ش�
 
 ## ۱۱. استقرار
 
-ابرک Production ابرآروان با Ubuntu 24.04 فعال است. نسخه‌ی جاری `main` شامل جریان بازی مهمان، پروفایل، دعوت، لیدربورد و پنل ادمین با سه Migration موفق و Health Check Web/API روی HTTP مستقر شده است. داده‌های قدیمی کمپین طبق تصمیم مالک پاک شده‌اند و یک حساب اولیه‌ی ادمین فعال است؛ مشخصات شخصی آن در Repository نگهداری نمی‌شود. برنامه در `/opt/bahar-almas` اجرا می‌شود، PostgreSQL فقط داخل Docker network قابل دسترسی است و Timer فعال Commitهای جدید `main` را هر ۶۰ ثانیه بررسی می‌کند. Buildهای سرور از Node Image موجود در Registry آروان استفاده می‌کنند و سرویس Migration همان Image تازه‌ی API را اجرا می‌کند. IP واقعی در مستندات عمومی Repository نگهداری نمی‌شود. جزئیات اتصال SSH، Containerها، انتشار خودکار، Environment، Domain و Backup در `docs/DEPLOYMENT.md` ثبت شده است.
+ابرک Production ابرآروان با Ubuntu 24.04 فعال است. نسخه‌ی جاری `main` شامل جریان بازی مهمان، پروفایل، دعوت، لیدربورد و پنل ادمین با چهار Migration موفق و Health Check Web/API روی HTTP مستقر شده است. داده‌های قدیمی کمپین طبق تصمیم مالک پاک شده‌اند و یک حساب اولیه‌ی ادمین فعال است؛ مشخصات شخصی آن در Repository نگهداری نمی‌شود. برنامه در `/opt/bahar-almas` اجرا می‌شود، PostgreSQL فقط داخل Docker network قابل دسترسی است و Timer فعال Commitهای جدید `main` را هر ۶۰ ثانیه بررسی می‌کند. Buildهای سرور از Node Image موجود در Registry آروان استفاده می‌کنند و سرویس Migration همان Image تازه‌ی API را اجرا می‌کند. IP واقعی در مستندات عمومی Repository نگهداری نمی‌شود. جزئیات اتصال SSH، Containerها، انتشار خودکار، Environment، Domain و Backup در `docs/DEPLOYMENT.md` ثبت شده است.
