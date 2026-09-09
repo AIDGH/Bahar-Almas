@@ -7,6 +7,21 @@ export type User = {
   totalGameScore: number;
   referralPoints: number;
   totalScore: number;
+  role: 'USER' | 'ADMIN';
+  isBanned: boolean;
+};
+
+export type AdminUser = User & {
+  bannedAt: string | null;
+  createdAt: string;
+  totalGames: number;
+  referralCount: number;
+};
+
+export type AdminUsersPage = {
+  users: AdminUser[];
+  total: number;
+  nextOffset: number | null;
 };
 
 export type LeaderboardEntry = {

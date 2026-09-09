@@ -10,7 +10,14 @@ import {
   logout,
   startGame as createGame,
 } from '@/lib/api';
-import type { GameHit, GameResult, GameSession, LeaderboardEntry, User } from '@/lib/types';
+import type {
+  GameHit,
+  GameResult,
+  GameSession,
+  LeaderboardEntry,
+  User,
+} from '@/lib/types';
+import { AdminDialog } from './admin-dialog';
 import { AuthDialog } from './auth-dialog';
 import { GameCanvas } from './game-canvas';
 import { formatScore, Leaderboard } from './leaderboard';
@@ -30,20 +37,27 @@ export function CampaignGame() {
     useState<HTMLAudioElement | null>(null);
   const [user, setUser] = useState<User | null>();
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [currentPlayer, setCurrentPlayer] = useState<LeaderboardEntry | null>(null);
-  const [nextLeaderboardOffset, setNextLeaderboardOffset] = useState<number | null>(null);
+  const [currentPlayer, setCurrentPlayer] = useState<LeaderboardEntry | null>(
+    null,
+  );
+  const [nextLeaderboardOffset, setNextLeaderboardOffset] = useState<
+    number | null
+  >(null);
   const [leaderboardLoading, setLeaderboardLoading] = useState(true);
   const [leaderboardLoadingMore, setLeaderboardLoadingMore] = useState(false);
   const [session, setSession] = useState<GameSession>();
   const [result, setResult] = useState<GameResult>();
   const [pendingGame, setPendingGame] = useState<PendingGame>();
   const [showAuth, setShowAuth] = useState(false);
-  const [authDefaultMode, setAuthDefaultMode] = useState<'login' | 'register'>('login');
+  const [authDefaultMode, setAuthDefaultMode] = useState<'login' | 'register'>(
+    'login',
+  );
   const [showProfile, setShowProfile] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
   const [initialReferralCode, setInitialReferralCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const overlayOpen = Boolean(result || showAuth || showProfile);
+  const overlayOpen = Boolean(result || showAuth || showProfile || showAdmin);
 
   const refreshLeaderboard = useCallback(async () => {
     try {
@@ -59,7 +73,9 @@ export function CampaignGame() {
   }, []);
 
   useEffect(() => {
-    void getMe().then(setUser).catch(() => setUser(null));
+    void getMe()
+      .then(setUser)
+      .catch(() => setUser(null));
     void getLeaderboard()
       .then((page) => {
         setLeaderboard(page.entries);
@@ -73,7 +89,11 @@ export function CampaignGame() {
     if (savedGame) {
       try {
         const parsed = JSON.parse(savedGame) as PendingGame;
-        if (parsed.sessionId && parsed.claimToken && parsed.result?.score >= 0) {
+        if (
+          parsed.sessionId &&
+          parsed.claimToken &&
+          parsed.result?.score >= 0
+        ) {
           window.setTimeout(() => {
             setPendingGame(parsed);
             setResult(parsed.result);
@@ -190,22 +210,29 @@ export function CampaignGame() {
     setShowAuth(true);
   }
 
-  const registerPendingGame = useCallback(async (game: PendingGame, authenticatedUser: User) => {
-    try {
-      const claimedResult = await claimGame(game.sessionId, game.claimToken);
-      window.localStorage.removeItem(PENDING_GAME_KEY);
-      setPendingGame(undefined);
-      setResult(claimedResult);
-      const refreshedUser = await getMe();
-      setUser(refreshedUser ?? {
-        ...authenticatedUser,
-        bestScore: claimedResult.bestScore ?? authenticatedUser.bestScore,
-      });
-      await refreshLeaderboard();
-    } catch (claimError) {
-      setError(`ورود انجام شد، اما ثبت رکورد ناموفق بود: ${messageOf(claimError)}`);
-    }
-  }, [refreshLeaderboard]);
+  const registerPendingGame = useCallback(
+    async (game: PendingGame, authenticatedUser: User) => {
+      try {
+        const claimedResult = await claimGame(game.sessionId, game.claimToken);
+        window.localStorage.removeItem(PENDING_GAME_KEY);
+        setPendingGame(undefined);
+        setResult(claimedResult);
+        const refreshedUser = await getMe();
+        setUser(
+          refreshedUser ?? {
+            ...authenticatedUser,
+            bestScore: claimedResult.bestScore ?? authenticatedUser.bestScore,
+          },
+        );
+        await refreshLeaderboard();
+      } catch (claimError) {
+        setError(
+          `ورود انجام شد، اما ثبت رکورد ناموفق بود: ${messageOf(claimError)}`,
+        );
+      }
+    },
+    [refreshLeaderboard],
+  );
 
   async function handleStart() {
     if (pendingGame) {
@@ -282,6 +309,7 @@ export function CampaignGame() {
     await logout().catch(() => undefined);
     setUser(null);
     setShowProfile(false);
+    setShowAdmin(false);
     await refreshLeaderboard();
     setResult(undefined);
   }
@@ -290,7 +318,13 @@ export function CampaignGame() {
     <main className="campaign-page">
       <header className="site-header">
         <a className="brand" href="#game" aria-label="بازی بهار الماس">
-          <Image src="/assets/bahar-logo.webp" alt="بهار الماس" width={360} height={212} priority />
+          <Image
+            src="/assets/bahar-logo.webp"
+            alt="بهار الماس"
+            width={360}
+            height={212}
+            priority
+          />
           <span>بازی تردِ بهار</span>
         </a>
         <nav aria-label="دسترسی سریع">
@@ -299,10 +333,20 @@ export function CampaignGame() {
         </nav>
         {user ? (
           <div className="user-chip">
+            {user.role === 'ADMIN' && (
+              <button
+                className="admin-trigger"
+                type="button"
+                onClick={() => setShowAdmin(true)}
+              >
+                مدیریت
+              </button>
+            )}
             <button
               className="profile-trigger"
               type="button"
               aria-haspopup="dialog"
+              aria-label="بازکردن پروفایل من"
               onClick={() => setShowProfile(true)}
             >
               <span className="profile-avatar" aria-hidden="true">
@@ -312,12 +356,24 @@ export function CampaignGame() {
                 <small>پروفایل من</small>
                 <strong>{user.displayName}</strong>
               </span>
-              <span className="profile-chevron" aria-hidden="true">‹</span>
+              <span className="profile-chevron" aria-hidden="true">
+                ‹
+              </span>
             </button>
-            <button className="logout-button" type="button" onClick={handleLogout}>خروج</button>
+            <button
+              className="logout-button"
+              type="button"
+              onClick={handleLogout}
+            >
+              خروج
+            </button>
           </div>
         ) : (
-          <button className="header-login" type="button" onClick={() => openAuth('login')}>
+          <button
+            className="header-login"
+            type="button"
+            onClick={() => openAuth('login')}
+          >
             ورود / ثبت‌نام
           </button>
         )}
@@ -335,27 +391,79 @@ export function CampaignGame() {
           ) : (
             <div className="game-intro">
               <div className="sun-rays" />
-              <Image className="oil-bottle" src="/assets/oil-bottle.webp" alt="روغن سرخ‌کردنی بهار الماس" width={620} height={1387} priority />
-              <Image className="floating-food floating-potato" src="/assets/potato-full.webp" alt="" width={800} height={149} priority />
-              <Image className="floating-food floating-chicken" src="/assets/chicken-full.webp" alt="" width={700} height={252} priority />
-              <Image className="floating-food floating-samboose" src="/assets/samboose-full.webp" alt="" width={600} height={471} priority />
+              <Image
+                className="oil-bottle"
+                src="/assets/oil-bottle.webp"
+                alt="روغن سرخ‌کردنی بهار الماس"
+                width={620}
+                height={1387}
+                priority
+              />
+              <Image
+                className="floating-food floating-potato"
+                src="/assets/potato-full.webp"
+                alt=""
+                width={800}
+                height={149}
+                priority
+              />
+              <Image
+                className="floating-food floating-chicken"
+                src="/assets/chicken-full.webp"
+                alt=""
+                width={700}
+                height={252}
+                priority
+              />
+              <Image
+                className="floating-food floating-samboose"
+                src="/assets/samboose-full.webp"
+                alt=""
+                width={600}
+                height={471}
+                priority
+              />
               <div className="intro-copy">
-                <span className="campaign-label">مسابقه‌ی آنلاین بهار الماس</span>
+                <span className="campaign-label">
+                  مسابقه‌ی آنلاین بهار الماس
+                </span>
                 <h1>
                   تردها رو بزن،
                   <strong> رکوردتو بشکن!</strong>
                 </h1>
-                <p>بدون ثبت‌نام بازی کن؛ بعد از پایان، رکوردت را با شماره موبایل ذخیره کن.</p>
+                <p>
+                  بدون ثبت‌نام بازی کن؛ بعد از پایان، رکوردت را با شماره موبایل
+                  ذخیره کن.
+                </p>
                 <div className="intro-stats">
-                  <span><b>۱</b> دقیقه</span>
+                  <span>
+                    <b>۱</b> دقیقه
+                  </span>
                   <i />
-                  <span><b>۱۰</b> امتیاز پایه برای هر برش</span>
+                  <span>
+                    <b>۱۰</b> امتیاز پایه برای هر برش
+                  </span>
                 </div>
-                <button className="primary-button start-button" type="button" onClick={handleStart} disabled={busy}>
-                  <span>{busy ? 'در حال آماده‌سازی…' : pendingGame ? 'ثبت رکورد قبلی' : 'شروع بازی'}</span>
+                <button
+                  className="primary-button start-button"
+                  type="button"
+                  onClick={handleStart}
+                  disabled={busy}
+                >
+                  <span>
+                    {busy
+                      ? 'در حال آماده‌سازی…'
+                      : pendingGame
+                        ? 'ثبت رکورد قبلی'
+                        : 'شروع بازی'}
+                  </span>
                   <b>←</b>
                 </button>
-                {error && <div className="game-error" role="alert">{error}</div>}
+                {error && (
+                  <div className="game-error" role="alert">
+                    {error}
+                  </div>
+                )}
               </div>
               {result && (
                 <div
@@ -364,7 +472,8 @@ export function CampaignGame() {
                   aria-modal="true"
                   aria-label="نتیجه بازی"
                   onClick={(event) => {
-                    if (event.target === event.currentTarget) setResult(undefined);
+                    if (event.target === event.currentTarget)
+                      setResult(undefined);
                   }}
                 >
                   <div className="result-panel" role="status">
@@ -382,18 +491,24 @@ export function CampaignGame() {
                         : 'برای ماندن این امتیاز، وارد شو یا یک حساب بساز.'}
                     </p>
                     {result.claimed ? (
-                      <button type="button" onClick={handleStart}>دوباره بازی کن</button>
+                      <button type="button" onClick={handleStart}>
+                        دوباره بازی کن
+                      </button>
                     ) : (
                       <button
                         type="button"
-                        onClick={() => user && pendingGame
-                          ? void registerPendingGame(pendingGame, user)
-                          : openAuth('register')}
+                        onClick={() =>
+                          user && pendingGame
+                            ? void registerPendingGame(pendingGame, user)
+                            : openAuth('register')
+                        }
                       >
                         {user ? 'ثبت رکورد' : 'ورود یا ثبت‌نام و ثبت رکورد'}
                       </button>
                     )}
-                    <small className="result-dismiss-hint">برای بستن، بیرون کارت بزن</small>
+                    <small className="result-dismiss-hint">
+                      برای بستن، بیرون کارت بزن
+                    </small>
                   </div>
                 </div>
               )}
@@ -420,23 +535,37 @@ export function CampaignGame() {
           <article>
             <i>۱</i>
             <span className="step-icon">⌁</span>
-            <div><h3>بازی کن</h3><p>بدون ثبت‌نام وارد بازی شو و بهترین امتیازت را بگیر.</p></div>
+            <div>
+              <h3>بازی کن</h3>
+              <p>بدون ثبت‌نام وارد بازی شو و بهترین امتیازت را بگیر.</p>
+            </div>
           </article>
           <article>
             <i>۲</i>
             <span className="step-icon slash-icon">╱</span>
-            <div><h3>رکوردت را ثبت کن</h3><p>بعد از بازی با شماره موبایل وارد شو یا حساب تازه بساز.</p></div>
+            <div>
+              <h3>رکوردت را ثبت کن</h3>
+              <p>بعد از بازی با شماره موبایل وارد شو یا حساب تازه بساز.</p>
+            </div>
           </article>
           <article>
             <i>۳</i>
             <span className="step-icon">♛</span>
-            <div><h3>برو بالاتر</h3><p>رتبه‌ات را ببین و لینک دعوت اختصاصی‌ات را برای بقیه بفرست.</p></div>
+            <div>
+              <h3>برو بالاتر</h3>
+              <p>رتبه‌ات را ببین و لینک دعوت اختصاصی‌ات را برای بقیه بفرست.</p>
+            </div>
           </article>
         </div>
       </section>
 
       <footer>
-        <Image src="/assets/bahar-logo.webp" alt="بهار الماس" width={360} height={212} />
+        <Image
+          src="/assets/bahar-logo.webp"
+          alt="بهار الماس"
+          width={360}
+          height={212}
+        />
         <p>یک بازی کوتاه و ترد از بهار الماس</p>
       </footer>
 
@@ -465,10 +594,20 @@ export function CampaignGame() {
           onUserUpdated={setUser}
         />
       )}
+      {user?.role === 'ADMIN' && showAdmin && (
+        <AdminDialog
+          open={showAdmin}
+          currentUser={user}
+          onClose={() => setShowAdmin(false)}
+          onCurrentUserUpdated={setUser}
+        />
+      )}
     </main>
   );
 }
 
 function messageOf(error: unknown): string {
-  return error instanceof Error ? error.message : 'خطای پیش‌بینی‌نشده‌ای رخ داد';
+  return error instanceof Error
+    ? error.message
+    : 'خطای پیش‌بینی‌نشده‌ای رخ داد';
 }

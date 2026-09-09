@@ -11,6 +11,8 @@
 - [x] اجرای Migration بازی مهمان/پروفایل/دعوت روی PostgreSQL محیط مستقر؛
 - [x] قفل Scroll و تعامل صفحه‌ی پشت تا بسته‌شدن کارت نتیجه؛
 - [x] منوی پروفایل موبایل‌محور با اطلاعات حساب، دعوت و تاریخچه‌ی شمسی؛
+- [x] نقش ادمین، فهرست کاربران مرتب‌شده بر اساس رکورد، جست‌وجو و ویرایش نام/شماره؛
+- [x] Ban/Unban نرم با ابطال Session، جلوگیری از ورود و حذف از لیدربورد؛
 - [ ] تست دستی کامل Guest Game → Result → Login/Register → Claim → Profile → Leaderboard؛
 - [ ] تست واقعی روی iPhone Safari و چند Android Chrome؛
 - [ ] تست Android Chrome با هر دو حالت فعال و غیرفعال `Remove animations`؛ در هر دو حالت Countdown و خرچ/خروچ باید Motion کامل داشته باشند و Combo در حالت کاهش Motion ثابت دیده شود؛
@@ -35,6 +37,7 @@
 - [ ] انتقال ثبت و سقف Pause از Client به Server برای نسخه‌ی جایزه‌دار؛
 - [ ] Load Test پایان بازی و Leaderboard؛
 - [ ] مانیتورینگ خطا و Audit رکوردهای مشکوک؛
+- [ ] ثبت Audit log تغییرات انجام‌شده توسط ادمین؛
 - [ ] اتصال Domain و فعال‌سازی HTTPS؛
 - [ ] افزودن Backup خارج از ابرک برای PostgreSQL و تست Restore؛
 - [ ] Privacy policy و دوره‌ی نگهداری شماره موبایل؛
@@ -47,4 +50,5 @@
 - [ ] Bomb؛
 - [ ] Bonus Item؛
 - [ ] Combo/Bonus visual و sound؛
-- [ ] پنل ادمین برای مشاهده و Invalid کردن رکورد مشکوک.
+- [x] پنل پایه‌ی ادمین برای مشاهده و مدیریت کاربران؛
+- [ ] امکان Invalid کردن یک رکورد مشکوک بدون Ban کامل User.

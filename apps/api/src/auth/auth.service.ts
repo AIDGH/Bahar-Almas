@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   HttpException,
   HttpStatus,
   Injectable,
@@ -17,7 +18,7 @@ import {
 import { Request, Response } from 'express';
 import { EnvironmentVariables } from '../config/environment';
 import { PrismaService } from '../database/prisma.service';
-import { AuthMode } from '../generated/prisma/enums';
+import { AuthMode, UserRole } from '../generated/prisma/enums';
 import { normalizeDigits, normalizeIranianMobile } from './auth-normalization';
 import { RequestOtpDto } from './dto/request-otp.dto';
 
@@ -39,8 +40,11 @@ export class AuthService {
     const displayName = dto.displayName?.trim().replace(/\s+/g, ' ');
     const existingUser = await this.prisma.user.findUnique({
       where: { mobile },
-      select: { id: true },
+      select: { id: true, isBanned: true },
     });
+    if (existingUser?.isBanned) {
+      throw new ForbiddenException('این شماره از شرکت در مسابقه مسدود شده است');
+    }
     if (dto.mode === 'login' && !existingUser) {
       throw new BadRequestException(
         'حسابی با این شماره پیدا نشد؛ ابتدا ثبت‌نام کنید',
@@ -58,10 +62,14 @@ export class AuthService {
     const referrer = dto.referralCode
       ? await this.prisma.user.findUnique({
           where: { referralCode: dto.referralCode.trim().toUpperCase() },
-          select: { id: true },
+          select: { id: true, isBanned: true },
         })
       : null;
-    if (dto.mode === 'register' && dto.referralCode && !referrer) {
+    if (
+      dto.mode === 'register' &&
+      dto.referralCode &&
+      (!referrer || referrer.isBanned)
+    ) {
       throw new BadRequestException('کد معرف پیدا نشد');
     }
 
@@ -153,6 +161,11 @@ export class AuthService {
         if (!existingUser) {
           throw new UnauthorizedException('حساب کاربری پیدا نشد');
         }
+        if (existingUser.isBanned) {
+          throw new ForbiddenException(
+            'این حساب از شرکت در مسابقه مسدود شده است',
+          );
+        }
         return existingUser;
       }
 
@@ -194,10 +207,18 @@ export class AuthService {
   async authenticateSession(token: string) {
     const session = await this.prisma.userSession.findFirst({
       where: { tokenHash: hashToken(token), expiresAt: { gt: new Date() } },
-      select: { user: { select: { id: true } } },
+      select: {
+        user: { select: { id: true, role: true, isBanned: true } },
+      },
     });
     if (!session) throw new UnauthorizedException('نشست شما منقضی شده است');
-    return session.user;
+    if (session.user.isBanned) {
+      await this.prisma.userSession.deleteMany({
+        where: { userId: session.user.id },
+      });
+      throw new ForbiddenException('این حساب از شرکت در مسابقه مسدود شده است');
+    }
+    return { id: session.user.id, role: session.user.role };
   }
 
   async getCurrentUser(userId: string) {
@@ -211,6 +232,8 @@ export class AuthService {
         bestScore: true,
         totalGameScore: true,
         referralPoints: true,
+        role: true,
+        isBanned: true,
       },
     });
     return {
@@ -265,6 +288,8 @@ export class AuthService {
       bestScore: number;
       totalGameScore: number;
       referralPoints: number;
+      role: UserRole;
+      isBanned: boolean;
     },
     metadata: RequestMetadata,
   ) {
@@ -296,6 +321,8 @@ export class AuthService {
         bestScore: user.bestScore,
         totalGameScore: user.totalGameScore,
         referralPoints: user.referralPoints,
+        role: user.role,
+        isBanned: user.isBanned,
         totalScore: user.totalGameScore + user.referralPoints,
       },
     };

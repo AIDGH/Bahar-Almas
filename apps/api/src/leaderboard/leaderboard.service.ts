@@ -8,7 +8,7 @@ export class LeaderboardService {
   async getPlayers(limit: number, offset: number, currentUserId?: string) {
     const [players, total] = await this.prisma.$transaction([
       this.prisma.user.findMany({
-        where: { bestScore: { gt: 0 } },
+        where: { bestScore: { gt: 0 }, isBanned: false },
         orderBy: [
           { bestScore: 'desc' },
           { bestScoredAt: 'asc' },
@@ -18,11 +18,13 @@ export class LeaderboardService {
         take: limit,
         select: { id: true, displayName: true, bestScore: true },
       }),
-      this.prisma.user.count({ where: { bestScore: { gt: 0 } } }),
+      this.prisma.user.count({
+        where: { bestScore: { gt: 0 }, isBanned: false },
+      }),
     ]);
     const currentUser = currentUserId
       ? await this.prisma.user.findUnique({
-          where: { id: currentUserId },
+          where: { id: currentUserId, isBanned: false },
           select: {
             id: true,
             displayName: true,
@@ -42,6 +44,7 @@ export class LeaderboardService {
       const ahead = await this.prisma.user.count({
         where: {
           bestScore: { gt: 0 },
+          isBanned: false,
           OR: [
             { bestScore: { gt: currentUser.bestScore } },
             {

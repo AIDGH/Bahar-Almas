@@ -18,6 +18,8 @@ export class ProfileService {
           bestScore: true,
           totalGameScore: true,
           referralPoints: true,
+          role: true,
+          isBanned: true,
         },
       }),
       this.prisma.gameSession.findMany({
@@ -61,6 +63,8 @@ export class ProfileService {
         bestScore: true,
         totalGameScore: true,
         referralPoints: true,
+        role: true,
+        isBanned: true,
       },
     });
     return {

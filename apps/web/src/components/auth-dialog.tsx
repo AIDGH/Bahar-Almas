@@ -90,7 +90,11 @@ export function AuthDialog({
   }
 
   return (
-    <div className="dialog-backdrop" role="presentation" onMouseDown={closeDialog}>
+    <div
+      className="dialog-backdrop"
+      role="presentation"
+      onMouseDown={closeDialog}
+    >
       <section
         className="auth-dialog"
         role="dialog"
@@ -98,11 +102,20 @@ export function AuthDialog({
         aria-labelledby="auth-title"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <button className="dialog-close" type="button" onClick={closeDialog} aria-label="بستن">
+        <button
+          className="dialog-close"
+          type="button"
+          onClick={closeDialog}
+          aria-label="بستن"
+        >
           ×
         </button>
         <span className="dialog-kicker">ثبت رکورد مسابقه</span>
-        <div className="auth-mode-tabs" role="tablist" aria-label="ورود یا ثبت‌نام">
+        <div
+          className="auth-mode-tabs"
+          role="tablist"
+          aria-label="ورود یا ثبت‌نام"
+        >
           <button
             type="button"
             role="tab"
@@ -134,19 +147,19 @@ export function AuthDialog({
             ? `کد شش‌رقمی برای ${mobile} آماده است.`
             : mode === 'login'
               ? 'شماره‌ای را وارد کن که قبلاً با آن ثبت‌نام کرده‌ای.'
-              : 'اسم نمایشی می‌تواند با اسم بازیکن‌های دیگر یکسان باشد.'}
+              : 'نام و نام خانوادگی می‌تواند با بازیکن‌های دیگر یکسان باشد.'}
         </p>
 
         {step === 'identity' ? (
           <form onSubmit={submitIdentity}>
             {mode === 'register' && (
               <>
-                <label htmlFor="display-name">اسم نمایشی</label>
+                <label htmlFor="display-name">نام و نام خانوادگی</label>
                 <input
                   id="display-name"
                   value={displayName}
                   onChange={(event) => setDisplayName(event.target.value)}
-                  placeholder="مثلاً سارا"
+                  placeholder="مثلاً آراد ایزدی دوست"
                   autoComplete="name"
                   maxLength={40}
                   required
@@ -171,8 +184,10 @@ export function AuthDialog({
                   id="referral-code"
                   className="ltr-input"
                   value={referralCode}
-                  onChange={(event) => setReferralCode(event.target.value.toUpperCase())}
-                  placeholder="مثلاً A1B2C3D4E5"
+                  onChange={(event) =>
+                    setReferralCode(event.target.value.toUpperCase())
+                  }
+                  placeholder="A1B2C3D4E5"
                   autoCapitalize="characters"
                   maxLength={12}
                 />
@@ -181,8 +196,16 @@ export function AuthDialog({
                 </small>
               </>
             )}
-            {error && <div className="form-error" role="alert">{error}</div>}
-            <button className="primary-button full-button" disabled={busy} type="submit">
+            {error && (
+              <div className="form-error" role="alert">
+                {error}
+              </div>
+            )}
+            <button
+              className="primary-button full-button"
+              disabled={busy}
+              type="submit"
+            >
               {busy ? 'یک لحظه…' : 'دریافت کد'}
             </button>
           </form>
@@ -211,11 +234,27 @@ export function AuthDialog({
               autoFocus
               required
             />
-            {error && <div className="form-error" role="alert">{error}</div>}
-            <button className="primary-button full-button" disabled={busy} type="submit">
-              {busy ? 'در حال تأیید…' : mode === 'login' ? 'تأیید و ورود' : 'تأیید و ثبت‌نام'}
+            {error && (
+              <div className="form-error" role="alert">
+                {error}
+              </div>
+            )}
+            <button
+              className="primary-button full-button"
+              disabled={busy}
+              type="submit"
+            >
+              {busy
+                ? 'در حال تأیید…'
+                : mode === 'login'
+                  ? 'تأیید و ورود'
+                  : 'تأیید و ثبت‌نام'}
             </button>
-            <button className="text-button" type="button" onClick={() => setStep('identity')}>
+            <button
+              className="text-button"
+              type="button"
+              onClick={() => setStep('identity')}
+            >
               اصلاح شماره موبایل
             </button>
           </form>
@@ -226,7 +265,9 @@ export function AuthDialog({
 }
 
 function messageOf(error: unknown): string {
-  return error instanceof Error ? error.message : 'خطای پیش‌بینی‌نشده‌ای رخ داد';
+  return error instanceof Error
+    ? error.message
+    : 'خطای پیش‌بینی‌نشده‌ای رخ داد';
 }
 
 function toEnglishDigits(value: string): string {

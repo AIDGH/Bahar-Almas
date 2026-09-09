@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { AdminModule } from './admin/admin.module';
 import { AuthModule } from './auth/auth.module';
 import {
   environmentFilePaths,
@@ -19,6 +20,7 @@ import { ProfileModule } from './profile/profile.module';
       validationSchema: environmentValidationSchema,
       validationOptions: { allowUnknown: true, abortEarly: false },
     }),
+    AdminModule,
     AuthModule,
     GameModule,
     LeaderboardModule,

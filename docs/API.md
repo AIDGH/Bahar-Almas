@@ -12,12 +12,12 @@ Base path: `/api/v1`
 {
   "mode": "register",
   "mobile": "09123456789",
-  "displayName": "سارا",
+  "displayName": "آراد ایزدی دوست",
   "referralCode": "A1B2C3D4E5"
 }
 ```
 
-`mode` باید `login` یا `register` باشد. برای ثبت‌نام، `displayName` الزامی و `referralCode` اختیاری است؛ برای ورود فقط شماره لازم است. ورود شماره‌ی ثبت‌نشده و ثبت‌نام دوباره‌ی شماره‌ی موجود رد می‌شود. در حالت `OTP_DELIVERY_MODE=preview` پاسخ دارای `developmentCode` است.
+`mode` باید `login` یا `register` باشد. برای ثبت‌نام، `displayName` یا همان نام و نام خانوادگی الزامی و `referralCode` اختیاری است؛ برای ورود فقط شماره لازم است. ورود شماره‌ی ثبت‌نشده و ثبت‌نام دوباره‌ی شماره‌ی موجود رد می‌شود. درخواست OTP و تأیید آن برای حساب مسدود با `403` رد می‌شوند. در حالت `OTP_DELIVERY_MODE=preview` پاسخ دارای `developmentCode` است.
 
 ### `POST /auth/otp/verify`
 
@@ -32,7 +32,7 @@ Challenge را مصرف می‌کند، در حالت ثبت‌نام User و ک
 
 ### `GET /auth/me`
 
-User فعلی شامل هویت، کد معرف، `bestScore`، `totalGameScore`، `referralPoints` و `totalScore` است.
+User فعلی شامل هویت، کد معرف، `bestScore`، `totalGameScore`، `referralPoints`، `totalScore`، `role` و `isBanned` است.
 
 ### `POST /auth/logout`
 
@@ -95,7 +95,27 @@ X-Game-Token: <claimToken>
 
 ### `GET /leaderboard?limit=10&offset=0`
 
-عمومی و صفحه‌بندی‌شده است. فقط Userهایی با امتیاز بیشتر از صفر را بر اساس `bestScore DESC` نمایش می‌دهد. پاسخ شامل `entries`، `total`، `nextOffset` و در صورت وجود Cookie معتبر، `currentPlayer` با رتبه‌ی دقیق اوست. UI ابتدا ده نفر را می‌گیرد و هنگام Scroll ادامه‌ی جدول را بارگذاری می‌کند.
+عمومی و صفحه‌بندی‌شده است. فقط Userهای مسدودنشده با امتیاز بیشتر از صفر را بر اساس `bestScore DESC` نمایش می‌دهد. پاسخ شامل `entries`، `total`، `nextOffset` و در صورت وجود Cookie معتبر، `currentPlayer` با رتبه‌ی دقیق اوست. UI ابتدا ده نفر را می‌گیرد و هنگام Scroll ادامه‌ی جدول را بارگذاری می‌کند.
+
+## Admin
+
+تمام مسیرهای این بخش به Session معتبر با نقش `ADMIN` نیاز دارند؛ User عادی پاسخ `403` می‌گیرد.
+
+### `GET /admin/users?search=&limit=25&offset=0`
+
+همه‌ی کاربران را با اولویت Userهای فعال و سپس `bestScore DESC` برمی‌گرداند. `search` روی نام، شماره موبایل و کد معرف جست‌وجو می‌کند. پاسخ صفحه‌بندی‌شده شامل نقش، وضعیت مسدودی، رکورد، مجموع امتیاز، تعداد بازی‌ها و تعداد دعوت‌هاست.
+
+### `PATCH /admin/users/:id`
+
+```json
+{
+  "displayName": "نام تازه",
+  "mobile": "09123456789",
+  "isBanned": true
+}
+```
+
+هر فیلد اختیاری است، ولی حداقل یک تغییر باید ارسال شود. شماره جدید نرمال‌سازی و یکتا بررسی می‌شود. مسدودکردن، همه‌ی Sessionهای کاربر را همان لحظه حذف می‌کند؛ حساب و تاریخچه نگه داشته می‌شوند ولی ورود و حضور در لیدربورد متوقف می‌شود. حساب دارای نقش `ADMIN` از این مسیر قابل مسدودکردن نیست.
 
 ## Health
 

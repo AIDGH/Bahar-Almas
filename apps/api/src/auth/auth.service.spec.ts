@@ -1,7 +1,9 @@
+import { ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Response } from 'express';
 import { EnvironmentVariables } from '../config/environment';
 import { PrismaService } from '../database/prisma.service';
+import { UserRole } from '../generated/prisma/enums';
 import { AuthService } from './auth.service';
 
 describe('AuthService session cookie', () => {
@@ -38,6 +40,34 @@ describe('AuthService session cookie', () => {
         path: '/',
       }),
     );
+  });
+});
+
+describe('AuthService banned sessions', () => {
+  it('revokes sessions and rejects banned users', async () => {
+    const deleteMany = jest.fn().mockResolvedValue({ count: 1 });
+    const prisma = {
+      userSession: {
+        findFirst: jest.fn().mockResolvedValue({
+          user: {
+            id: 'banned-user',
+            role: UserRole.USER,
+            isBanned: true,
+          },
+        }),
+        deleteMany,
+      },
+    } as unknown as PrismaService;
+    const service = new AuthService(prisma, {
+      get: jest.fn(),
+    } as unknown as ConfigService<EnvironmentVariables, true>);
+
+    await expect(service.authenticateSession('session-token')).rejects.toThrow(
+      ForbiddenException,
+    );
+    expect(deleteMany).toHaveBeenCalledWith({
+      where: { userId: 'banned-user' },
+    });
   });
 });
 

@@ -75,6 +75,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .profile-trigger-copy strong { max-width: 112px; overflow: hidden; color: var(--ink); font-size: .8rem; text-overflow: ellipsis; white-space: nowrap; }
 .profile-chevron { color: var(--red-dark); font-size: 1.25rem; font-weight: 950; }
 .user-chip .logout-button { background: var(--ink); color: white; padding: 8px 12px; font-size: .76rem; font-weight: 800; }
+.user-chip .admin-trigger { background: var(--red-dark); color: white; padding: 8px 12px; font-size: .76rem; font-weight: 850; }
 
 .play-layout {
   width: min(1380px, calc(100% - 40px));
@@ -354,6 +355,45 @@ footer p { font-size: .83rem; }
 .empty-history { padding: 28px 12px; border-radius: 14px; background: #f5eee6; color: var(--muted); text-align: center; }
 .history-more { display: block; min-height: 42px; margin: 12px auto 0; }
 
+.admin-backdrop { padding: 18px; }
+.admin-dialog { position: relative; width: min(1120px, 100%); max-height: calc(100svh - 36px); overflow: auto; overscroll-behavior: contain; padding: 30px; border: 4px solid var(--yellow); border-radius: 28px; background: var(--white); box-shadow: 0 35px 100px rgba(29, 0, 6, .58); }
+.admin-heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; padding-left: 44px; }
+.admin-heading span { color: var(--red); font-size: .78rem; font-weight: 900; }
+.admin-heading h2 { margin: 2px 0 0; font-size: 1.8rem; }
+.admin-heading > b { color: var(--red-dark); font-size: .9rem; }
+.admin-search { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; margin: 22px 0 16px; }
+.admin-search input { min-width: 0; height: 48px; border: 1px solid #dacabd; border-radius: 13px; padding: 0 14px; outline: 0; }
+.admin-search input:focus { border-color: #dba900; box-shadow: 0 0 0 4px rgba(255, 218, 0, .2); }
+.admin-search button, .admin-user-actions button, .admin-edit-form button, .admin-load-more { min-height: 42px; border: 0; border-radius: 11px; padding: 0 15px; background: var(--ink); color: white; cursor: pointer; font-weight: 850; }
+.admin-search .admin-clear-search { background: #eee4d9; color: var(--ink); }
+.admin-loading, .admin-empty { min-height: 330px; display: grid; place-items: center; color: var(--muted); }
+.admin-users { display: grid; gap: 9px; }
+.admin-user-card { display: grid; grid-template-columns: 42px minmax(190px, 1.3fr) minmax(290px, 1.5fr) auto; align-items: center; gap: 13px; padding: 11px 13px; border: 1px solid var(--line); border-radius: 16px; background: #fffdf5; }
+.admin-user-card.is-banned { background: #f2ece8; opacity: .78; }
+.admin-user-rank { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; background: var(--yellow); color: var(--red-dark); font-weight: 950; }
+.admin-user-card.is-banned .admin-user-rank { background: #ddd2cb; color: var(--muted); }
+.admin-user-main { min-width: 0; display: grid; gap: 2px; }
+.admin-user-name { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.admin-user-name strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-user-name span { flex: 0 0 auto; padding: 3px 7px; border-radius: 999px; background: var(--yellow); color: var(--ink); font-size: .63rem; font-weight: 900; }
+.admin-user-name .banned-pill { background: #e1c9c9; color: #8a1325; }
+.admin-user-main small { direction: ltr; justify-self: start; color: var(--muted); }
+.admin-user-main code { color: #886017; font-size: .7rem; }
+.admin-user-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+.admin-user-stats span { min-width: 0; display: grid; gap: 2px; padding: 7px; border-radius: 10px; background: #f5eee6; color: var(--muted); font-size: .68rem; }
+.admin-user-stats b { color: var(--red-dark); font-size: .82rem; }
+.admin-user-actions { display: flex; gap: 6px; }
+.admin-user-actions button { min-height: 36px; padding-inline: 11px; font-size: .72rem; }
+.admin-user-actions .ban-button { background: #a7142b; }
+.admin-user-actions .unban-button { background: #1c7350; }
+.admin-edit-form { grid-column: 2 / -1; display: grid; grid-template-columns: 1fr 1fr auto; align-items: end; gap: 9px; padding-top: 11px; border-top: 1px dashed #d7c7b8; }
+.admin-edit-form label { display: grid; gap: 5px; color: var(--muted); font-size: .75rem; font-weight: 800; }
+.admin-edit-form input { width: 100%; min-width: 0; height: 43px; border: 1px solid #d4c5b7; border-radius: 11px; padding: 0 11px; outline: 0; }
+.admin-edit-form > div { display: flex; gap: 5px; }
+.admin-edit-form button { min-height: 43px; padding-inline: 12px; font-size: .72rem; }
+.admin-edit-form button:last-child { background: #eee4d9; color: var(--ink); }
+.admin-load-more { justify-self: center; margin-top: 7px; }
+
 @keyframes pulse { 50% { opacity: .25; transform: scale(.75); } }
 @keyframes shimmer { to { background-position: -300% 0; } }
 @keyframes timer-pulse { to { transform: scale(1.06); } }
@@ -394,13 +434,17 @@ footer p { font-size: .83rem; }
   .leaderboard-card { min-height: auto; }
   .leaderboard-list { max-height: 330px; }
   .profile-dialog { max-height: calc(100svh - 24px); }
+  .admin-dialog { padding: 25px 18px; }
+  .admin-user-card { grid-template-columns: 38px minmax(0, 1fr) auto; }
+  .admin-user-stats { grid-column: 2 / -1; }
+  .admin-edit-form { grid-column: 1 / -1; }
   .steps-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 480px) {
   .site-header { width: calc(100% - 20px); }
-  .profile-trigger-copy small, .profile-chevron { display: none; }
-  .profile-trigger-copy strong { max-width: 68px; }
+  .profile-trigger-copy, .profile-chevron { display: none; }
+  .user-chip .admin-trigger { padding-inline: 9px; font-size: .7rem; }
   .game-card, .leaderboard-card { border-radius: 24px; }
   .game-intro { padding: 34px 18px 230px; }
   .campaign-label { font-size: .7rem; }
@@ -433,6 +477,17 @@ footer p { font-size: .83rem; }
   .referral-card button { width: 100%; }
   .game-history li { align-items: flex-start; flex-direction: column; gap: 2px; }
   .game-history time { text-align: right; }
+  .admin-backdrop { padding: 0; }
+  .admin-dialog { width: 100%; height: 100svh; max-height: none; padding: 24px 14px 30px; border: 0; border-radius: 0; }
+  .admin-heading { padding-left: 39px; }
+  .admin-search { grid-template-columns: 1fr auto; }
+  .admin-search .admin-clear-search { grid-column: 1 / -1; }
+  .admin-user-card { grid-template-columns: 34px minmax(0, 1fr); align-items: start; padding: 11px; }
+  .admin-user-rank { width: 32px; height: 32px; }
+  .admin-user-actions { grid-column: 1 / -1; justify-content: flex-end; }
+  .admin-user-stats { grid-column: 1 / -1; grid-template-columns: 1fr 1fr; }
+  .admin-edit-form { grid-template-columns: 1fr; }
+  .admin-edit-form > div { justify-content: flex-end; }
 }
 
 @media (prefers-reduced-motion: reduce) {

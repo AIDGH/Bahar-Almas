@@ -1,4 +1,6 @@
 import type {
+  AdminUser,
+  AdminUsersPage,
   GameHit,
   GameResult,
   GameSession,
@@ -79,13 +81,34 @@ export async function claimGame(sessionId: string, claimToken: string) {
 }
 
 export async function getProfile(offset = 0, limit = 50) {
-  return request<Profile>(`${API_BASE}/profile?limit=${limit}&offset=${offset}`);
+  return request<Profile>(
+    `${API_BASE}/profile?limit=${limit}&offset=${offset}`,
+  );
 }
 
 export async function updateProfile(displayName: string) {
   return request<User>(`${API_BASE}/profile`, {
     method: 'PATCH',
     body: JSON.stringify({ displayName }),
+  });
+}
+
+export async function getAdminUsers(search = '', offset = 0, limit = 25) {
+  const params = new URLSearchParams({
+    search,
+    offset: String(offset),
+    limit: String(limit),
+  });
+  return request<AdminUsersPage>(`${API_BASE}/admin/users?${params}`);
+}
+
+export async function updateAdminUser(
+  userId: string,
+  input: { displayName?: string; mobile?: string; isBanned?: boolean },
+) {
+  return request<AdminUser>(`${API_BASE}/admin/users/${userId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
   });
 }
 
@@ -103,9 +126,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 async function unwrap<T>(response: Response): Promise<T> {
-  const payload = (await response.json().catch(() => null)) as
-    | { data?: T; message?: string | string[] }
-    | null;
+  const payload = (await response.json().catch(() => null)) as {
+    data?: T;
+    message?: string | string[];
+  } | null;
   if (!response.ok) {
     const message = Array.isArray(payload?.message)
       ? payload.message[0]

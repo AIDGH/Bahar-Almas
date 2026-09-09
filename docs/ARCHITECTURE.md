@@ -10,13 +10,15 @@ Client
  ├── Separate login/register dialog
  ├── Profile + Persian game history + referral link
  ├── Paginated leaderboard + personal rank
+ ├── Admin user management
  └── Canvas game
        ↓ REST / JSON + HttpOnly cookie
 NestJS
  ├── AuthModule
  ├── GameModule
  ├── ProfileModule
- └── LeaderboardModule
+ ├── LeaderboardModule
+ └── AdminModule
        ↓ Prisma
 PostgreSQL
 ```
@@ -59,6 +61,7 @@ Branch `main` هر ۶۰ ثانیه از داخل سرور بررسی می‌شو
 - Pause هم Gameplay و هم ساعت Monotonic Client را متوقف می‌کند و بودجه‌ی تجمعی آن ۳۰ ثانیه است؛
 - Result overlay و Dialogهای حساب، Scroll بدنه و Overscroll موبایل را تا بسته‌شدن کامل قفل می‌کنند؛
 - پروفایل به‌صورت پنل کشویی سمت راست باز می‌شود و تاریخچه را در صفحه‌های ۵۰تایی از API دریافت می‌کند؛
+- پنل ادمین فقط برای User دارای نقش `ADMIN` نمایش داده می‌شود و فهرست، جست‌وجو، ویرایش و Ban/Unban کاربران را ارائه می‌کند؛
 - دسترسی API در `src/lib/api.ts` و Same-origin proxy در Development.
 - ابزار WebMCP خواندنی `read_bahar_almas_leaderboard` برای Browserهای پشتیبان؛ نبود پشتیبانی WebMCP روی اجرای عادی سایت اثر ندارد.
 
@@ -77,6 +80,8 @@ Branch `main` هر ۶۰ ثانیه از داخل سرور بررسی می‌شو
 - Score نهایی داخل Transaction ثبت می‌شود.
 - بازی پیش از ورود با Claim Token تصادفی شروع و Finish می‌شود؛ اتصال نتیجه به User فقط پس از احراز هویت انجام می‌شود؛
 - تاریخچه، مجموع امتیاز، پاداش دعوت و رتبه‌ی شخصی از PostgreSQL خوانده می‌شوند.
+- Guard نقش ادمین مستقل از نمایش دکمه در UI است و همه‌ی مسیرهای مدیریت را سمت سرور محافظت می‌کند؛
+- Ban به‌صورت Soft انجام می‌شود: Sessionها باطل، ورود و لیدربورد مسدود و داده‌های حساب/بازی حفظ می‌شوند.
 
 ## چرخه‌ی Game Session
 
