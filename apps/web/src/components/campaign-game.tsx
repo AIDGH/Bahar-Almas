@@ -599,10 +599,16 @@ export function CampaignGame() {
                   : 'امتیازت آماده ثبت است'}
               </span>
               <strong>{formatScore(result.score)}</strong>
-              <p>
-                {result.claimed && result.rank
-                  ? `رتبه‌ی فعلی تو: ${new Intl.NumberFormat('fa-IR').format(result.rank)}`
-                  : 'برای موندن این امتیازت، وارد شو یا یک حساب بساز.'}
+              <p className={result.claimed ? undefined : 'result-copy'}>
+                {result.claimed && result.rank ? (
+                  `رتبه‌ی فعلی تو: ${new Intl.NumberFormat('fa-IR').format(result.rank)}`
+                ) : (
+                  <>
+                    برای موندن این امتیازت،
+                    <br />
+                    وارد شو یا یک حساب بساز.
+                  </>
+                )}
               </p>
               {result.claimed ? (
                 <button type="button" onClick={handleStart}>

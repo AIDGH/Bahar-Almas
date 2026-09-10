@@ -441,6 +441,12 @@ a {
   color: var(--muted);
   white-space: nowrap;
 }
+.result-panel p.result-copy {
+  white-space: normal;
+  font-size: 1rem;
+  line-height: 1.7;
+  letter-spacing: 0;
+}
 .result-panel button {
   border: 0;
   border-radius: 12px;
@@ -2070,6 +2076,11 @@ footer p {
   .result-panel p {
     font-size: clamp(0.66rem, 3vw, 0.8rem);
     letter-spacing: -0.025em;
+  }
+  .result-panel p.result-copy {
+    font-size: clamp(0.92rem, 4vw, 1.05rem);
+    line-height: 1.7;
+    letter-spacing: 0;
   }
   .profile-backdrop {
     padding: 8px;
