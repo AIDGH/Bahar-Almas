@@ -15,6 +15,8 @@
 
 نسخه‌ی دسته‌بندی پنل و سخت‌گیری نقش نیز روی Production منتشر شده است. بررسی مستقیم API تأیید کرده که ورود تازه‌ی ادمین در حالت Preview با `403`، ثبت‌نام دارای فیلد اضافه‌ی `role` با `400` و دسترسی بدون Session به مسیر مدیریت با `401` رد می‌شوند.
 
+نسخه‌ی پایداری افکت موبایل و Prefetch پروفایل نیز روی Production منتشر شده است. پس از انتشار، Web، API و PostgreSQL Healthy بودند و پاسخ مستقیم Caddy برای `kherech.webp` هدر `Cache-Control: public, max-age=86400, stale-while-revalidate=604800` داشت.
+
 ## اتصال SSH
 
 ```bash
