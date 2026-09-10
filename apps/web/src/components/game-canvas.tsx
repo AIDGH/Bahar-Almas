@@ -14,7 +14,11 @@ type GameCanvasProps = {
 
 type Point = { x: number; y: number; at: number };
 type Particle = Point & { vx: number; vy: number; color: string; life: number };
-type SpriteSet = { full: HTMLImageElement; left: HTMLImageElement; right: HTMLImageElement };
+type SpriteSet = {
+  full: HTMLImageElement;
+  left: HTMLImageElement;
+  right: HTMLImageElement;
+};
 type SpriteMap = Record<GameTarget['kind'], SpriteSet>;
 type CrunchSequence = { id: number; x: number; y: number; opensRight: boolean };
 type GestureHit = { at: number; x: number; y: number; points: number };
@@ -29,7 +33,10 @@ const MAX_PAUSE_MS = 30_000;
 const START_COUNTDOWN_MS = 3_000;
 const MUSIC_VOLUME = 0.38;
 
-const SPRITE_PATHS: Record<GameTarget['kind'], Record<keyof SpriteSet, string>> = {
+const SPRITE_PATHS: Record<
+  GameTarget['kind'],
+  Record<keyof SpriteSet, string>
+> = {
   POTATO: {
     full: '/assets/potato-full.webp',
     left: '/assets/potato-left.webp',
@@ -72,12 +79,18 @@ export function GameCanvas({
   const pausedRef = useRef(false);
   const pauseStartedAtRef = useRef<number | null>(null);
   const totalPausedMsRef = useRef(0);
-  const pauseTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const pauseTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
   const lastCrunchAtRef = useRef(-CRUNCH_COOLDOWN_MS);
   const crunchTimeoutsRef = useRef(new Set<ReturnType<typeof setTimeout>>());
   const comboSequenceRef = useRef(0);
-  const comboTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const countdownTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const comboTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  const countdownTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
   const [score, setScore] = useState(0);
   const [remainingMs, setRemainingMs] = useState(session.durationMs);
   const [paused, setPaused] = useState(false);
@@ -162,12 +175,7 @@ export function GameCanvas({
       if (!gameStartedRef.current) {
         const countdownRemaining = gameplayStartedAt - clockNow;
         context.clearRect(0, 0, width, height);
-        drawAtmosphere(
-          context,
-          width,
-          height,
-          clockNow - countdownStartedAt,
-        );
+        drawAtmosphere(context, width, height, clockNow - countdownStartedAt);
         if (countdownRemaining > 0) {
           const nextCountdown = Math.ceil(countdownRemaining / 1_000);
           setCountdown((current) =>
@@ -186,10 +194,7 @@ export function GameCanvas({
           music.volume = MUSIC_VOLUME;
           if (music.paused) void music.play().catch(() => undefined);
         }
-        countdownTimeoutRef.current = setTimeout(
-          () => setCountdown(null),
-          260,
-        );
+        countdownTimeoutRef.current = setTimeout(() => setCountdown(null), 260);
       }
 
       const currentPauseMs =
@@ -197,7 +202,10 @@ export function GameCanvas({
           ? 0
           : clockNow - pauseStartedAtRef.current;
       const elapsed =
-        clockNow - gameplayStartedAt - totalPausedMsRef.current - currentPauseMs;
+        clockNow -
+        gameplayStartedAt -
+        totalPausedMsRef.current -
+        currentPauseMs;
       elapsedRef.current = elapsed;
       if (pausedRef.current) {
         animationFrame = requestAnimationFrame(drawFrame);
@@ -218,7 +226,12 @@ export function GameCanvas({
 
           const position = targetPosition(target, elapsed, width, height);
           if (slicedAt === undefined) {
-            drawWholeTarget(context, sprites[target.kind].full, target, position);
+            drawWholeTarget(
+              context,
+              sprites[target.kind].full,
+              target,
+              position,
+            );
           } else {
             const isVisible = drawSlicedTarget(
               context,
@@ -237,7 +250,9 @@ export function GameCanvas({
 
       const remaining = Math.max(0, session.durationMs - elapsed);
       setRemainingMs((current) =>
-        Math.abs(current - remaining) > 180 || remaining === 0 ? remaining : current,
+        Math.abs(current - remaining) > 180 || remaining === 0
+          ? remaining
+          : current,
       );
 
       if (remaining === 0 && !finishingRef.current) {
@@ -261,7 +276,8 @@ export function GameCanvas({
   }, [countdownSfx, music, onFinish, session]);
 
   function handlePointerDown(event: PointerEvent<HTMLCanvasElement>) {
-    if (!gameStartedRef.current || pausedRef.current || finishingRef.current) return;
+    if (!gameStartedRef.current || pausedRef.current || finishingRef.current)
+      return;
     if (activePointerIdRef.current !== null) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     const point = pointerPoint(event);
@@ -279,7 +295,10 @@ export function GameCanvas({
     if (!previous) return;
     const canvas = event.currentTarget;
     const next = pointerPoint(event);
-    const segmentDistance = Math.hypot(next.x - previous.x, next.y - previous.y);
+    const segmentDistance = Math.hypot(
+      next.x - previous.x,
+      next.y - previous.y,
+    );
     if (segmentDistance < 3) return;
 
     const elapsed = elapsedRef.current;
@@ -293,13 +312,16 @@ export function GameCanvas({
       if (elapsed > target.spawnAtMs + target.flightDurationMs) continue;
       const position = targetPosition(target, elapsed, width, height);
       const hitRadius = Math.max(28, position.width * 0.27);
-      if (distanceToSegment(position.x, position.y, previous, next) > hitRadius) continue;
+      if (distanceToSegment(position.x, position.y, previous, next) > hitRadius)
+        continue;
 
       slicedRef.current.set(target.id, elapsed);
       hitsRef.current.push({
         targetId: target.id,
         hitAtMs: Math.round(elapsed),
-        swipeDistance: Math.round(Math.max(8, Math.min(2_000, segmentDistance))),
+        swipeDistance: Math.round(
+          Math.max(8, Math.min(2_000, segmentDistance)),
+        ),
         swipeDurationMs: Math.round(duration),
         gestureId: gestureIdRef.current,
       });
@@ -360,7 +382,8 @@ export function GameCanvas({
   function playCrunch() {
     if (soundPoolRef.current.length === 0) return;
     const audio = soundPoolRef.current[soundIndexRef.current];
-    soundIndexRef.current = (soundIndexRef.current + 1) % soundPoolRef.current.length;
+    soundIndexRef.current =
+      (soundIndexRef.current + 1) % soundPoolRef.current.length;
     audio.currentTime = 0;
     void audio.play().catch(() => undefined);
   }
@@ -406,7 +429,8 @@ export function GameCanvas({
         ? [...currentHits]
         : [];
     const previousPoints = recentHits.reduce((sum, hit) => sum + hit.points, 0);
-    const previousMultiplier = recentHits.length >= 3 ? recentHits.length / 2 : 1;
+    const previousMultiplier =
+      recentHits.length >= 3 ? recentHits.length / 2 : 1;
     const previousTotal = previousPoints * previousMultiplier;
     recentHits.push({ at: elapsed, x, y, points });
     gestureHitsRef.current = recentHits;
@@ -441,7 +465,8 @@ export function GameCanvas({
       finishingRef.current ||
       pausedRef.current ||
       pauseBudgetMs <= 0
-    ) return;
+    )
+      return;
     endPointer();
     pausedRef.current = true;
     pauseStartedAtRef.current = performance.now();
@@ -482,25 +507,39 @@ export function GameCanvas({
 
   return (
     <div className="game-shell">
-      {gameReady && <div className="game-hud">
-        <div className="hud-score" aria-label={`امتیاز ${formatScore(score)}`}>
-          <NextImage src="/assets/oil-bottle.webp" alt="" width={620} height={1387} />
-          <strong className="hud-number">{formatScore(score)}</strong>
+      {gameReady && (
+        <div className="game-hud">
+          <div
+            className="hud-score"
+            aria-label={`امتیاز ${formatScore(score)}`}
+          >
+            <NextImage
+              src="/assets/oil-bottle.webp"
+              alt=""
+              width={620}
+              height={1387}
+            />
+            <strong className="hud-number">{formatScore(score)}</strong>
+          </div>
+          <button
+            className="pause-button"
+            type="button"
+            onClick={pauseGame}
+            disabled={pauseBudgetMs <= 0}
+            aria-label="توقف موقت بازی"
+          >
+            <span aria-hidden="true">Ⅱ</span>
+          </button>
+          <div
+            className={`hud-timer ${remainingMs < 15_000 ? 'is-ending' : ''}`}
+          >
+            <span className="timer-icon" aria-hidden="true">
+              ◷
+            </span>
+            <strong className="hud-number">{formatTime(remainingMs)}</strong>
+          </div>
         </div>
-        <button
-          className="pause-button"
-          type="button"
-          onClick={pauseGame}
-          disabled={pauseBudgetMs <= 0}
-          aria-label="توقف موقت بازی"
-        >
-          <span aria-hidden="true">Ⅱ</span>
-        </button>
-        <div className={`hud-timer ${remainingMs < 15_000 ? 'is-ending' : ''}`}>
-          <span className="timer-icon" aria-hidden="true">◷</span>
-          <strong className="hud-number">{formatTime(remainingMs)}</strong>
-        </div>
-      </div>}
+      )}
       <canvas
         ref={canvasRef}
         className="game-canvas"
@@ -511,24 +550,48 @@ export function GameCanvas({
         onPointerCancel={endPointer}
         onPointerLeave={endPointer}
       />
-      {gameReady && <div className="game-tip">انگشتت را روی سوخاری‌ها بکش!</div>}
+      {gameReady && (
+        <div className="game-tip">انگشتت را روی سوخاری‌ها بکش!</div>
+      )}
       {countdown !== null && (
-        <div className={`game-countdown ${countdown === 0 ? 'is-zero' : ''}`} aria-live="assertive">
+        <div
+          className={`game-countdown ${countdown === 0 ? 'is-zero' : ''}`}
+          aria-live="assertive"
+        >
           <span key={countdown}>{countdown}</span>
         </div>
       )}
       {paused && (
-        <div className="pause-overlay" role="dialog" aria-modal="true" aria-label="بازی متوقف شده">
+        <div
+          className="pause-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="بازی متوقف شده"
+        >
           <div className="pause-panel">
             <span>بازی متوقف شد</span>
             <strong>یه نفس تازه کن!</strong>
             <p>
               بازی و تایمر واقعاً متوقف شده‌اند؛ از زمان Pause این بازی{' '}
-              {new Intl.NumberFormat('fa-IR').format(Math.ceil(pauseBudgetMs / 1_000))}
-              {' '}ثانیه باقی مانده است.
+              {new Intl.NumberFormat('fa-IR').format(
+                Math.ceil(pauseBudgetMs / 1_000),
+              )}{' '}
+              ثانیه باقی مانده است.
             </p>
-            <button className="resume-button" type="button" onClick={resumeGame}>ادامه بازی</button>
-            <button className="end-game-button" type="button" onClick={endGameEarly}>پایان بازی</button>
+            <button
+              className="resume-button"
+              type="button"
+              onClick={resumeGame}
+            >
+              ادامه بازی
+            </button>
+            <button
+              className="end-game-button"
+              type="button"
+              onClick={endGameEarly}
+            >
+              پایان بازی
+            </button>
           </div>
         </div>
       )}
@@ -545,6 +608,8 @@ export function GameCanvas({
             alt=""
             width={360}
             height={273}
+            priority
+            unoptimized
           />
           <NextImage
             className="crunch-word crunch-khoroch"
@@ -552,6 +617,8 @@ export function GameCanvas({
             alt=""
             width={360}
             height={272}
+            priority
+            unoptimized
           />
         </div>
       ))}
@@ -582,10 +649,19 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 
 function pointerPoint(event: PointerEvent<HTMLCanvasElement>): Point {
   const rect = event.currentTarget.getBoundingClientRect();
-  return { x: event.clientX - rect.left, y: event.clientY - rect.top, at: Date.now() };
+  return {
+    x: event.clientX - rect.left,
+    y: event.clientY - rect.top,
+    at: Date.now(),
+  };
 }
 
-function targetPosition(target: GameTarget, elapsed: number, width: number, height: number) {
+function targetPosition(
+  target: GameTarget,
+  elapsed: number,
+  width: number,
+  height: number,
+) {
   const progress = Math.max(
     0,
     Math.min(1, (elapsed - target.spawnAtMs) / target.flightDurationMs),
@@ -612,7 +688,13 @@ function drawWholeTarget(
   context.shadowColor = 'rgba(25, 5, 0, .34)';
   context.shadowBlur = 14;
   context.shadowOffsetY = 9;
-  context.drawImage(image, -position.width / 2, -height / 2, position.width, height);
+  context.drawImage(
+    image,
+    -position.width / 2,
+    -height / 2,
+    position.width,
+    height,
+  );
   context.restore();
 }
 
@@ -642,11 +724,15 @@ function drawSlicedTarget(
   if (position.y + fall - maximumHeight / 2 > canvasHeight + 30) return false;
 
   for (const half of halves) {
-    const width = position.width * (half.image.naturalWidth / sprites.full.naturalWidth);
+    const width =
+      position.width * (half.image.naturalWidth / sprites.full.naturalWidth);
     const height = width * (half.image.naturalHeight / half.image.naturalWidth);
-    const alignedOffset = half.direction * (position.width - width) / 2;
+    const alignedOffset = (half.direction * (position.width - width)) / 2;
     context.save();
-    context.translate(position.x + alignedOffset + half.direction * separation, position.y + fall);
+    context.translate(
+      position.x + alignedOffset + half.direction * separation,
+      position.y + fall,
+    );
     context.rotate(position.angle + half.direction * seconds * 1.35);
     context.drawImage(half.image, -width / 2, -height / 2, width, height);
     context.restore();
@@ -675,7 +761,7 @@ function drawAtmosphere(
   context.globalAlpha = 0.32;
   context.fillStyle = '#ffca26';
   for (let index = 0; index < 16; index += 1) {
-    const x = (index * 83 + elapsed * 0.012) % (width + 40) - 20;
+    const x = ((index * 83 + elapsed * 0.012) % (width + 40)) - 20;
     const y = (index * 137) % height;
     context.beginPath();
     context.arc(x, y, index % 3 === 0 ? 2 : 1, 0, Math.PI * 2);
@@ -689,7 +775,9 @@ function drawParticles(
   particles: Particle[],
   now: number,
 ): Particle[] {
-  const alive = particles.filter((particle) => now - particle.at < particle.life);
+  const alive = particles.filter(
+    (particle) => now - particle.at < particle.life,
+  );
   for (const particle of alive) {
     const age = now - particle.at;
     const progress = age / particle.life;
@@ -744,12 +832,19 @@ function distanceToSegment(
 ): number {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
-  if (dx === 0 && dy === 0) return Math.hypot(pointX - start.x, pointY - start.y);
+  if (dx === 0 && dy === 0)
+    return Math.hypot(pointX - start.x, pointY - start.y);
   const amount = Math.max(
     0,
-    Math.min(1, ((pointX - start.x) * dx + (pointY - start.y) * dy) / (dx * dx + dy * dy)),
+    Math.min(
+      1,
+      ((pointX - start.x) * dx + (pointY - start.y) * dy) / (dx * dx + dy * dy),
+    ),
   );
-  return Math.hypot(pointX - (start.x + amount * dx), pointY - (start.y + amount * dy));
+  return Math.hypot(
+    pointX - (start.x + amount * dx),
+    pointY - (start.y + amount * dy),
+  );
 }
 
 function formatTime(milliseconds: number): string {

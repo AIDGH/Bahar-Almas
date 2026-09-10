@@ -21,6 +21,8 @@
 - [x] تفکیک پنل مدیریت به ادمین‌ها، کاربران عادی و مسدودشده‌ها با فیلتر سمت سرور؛
 - [x] رد تزریق نقش در ثبت‌نام/ویرایش و اجبار نقش `USER` برای حساب تازه؛
 - [x] بستن ورود تازه‌ی ادمین در Production تا پایان استفاده از OTP نمایشی؛
+- [x] Preload و Decode قطعی خرچ/خروچ پیش از شروع بازی و Cache مرورگر Assetهای ثابت؛
+- [x] Prefetch و Deduplicate صفحه‌ی نخست پروفایل پس از احراز نشست؛
 - [ ] تست دستی کامل Guest Game → Result → Login/Register → Claim → Profile → Leaderboard؛
 - [ ] تست واقعی روی iPhone Safari و چند Android Chrome؛
 - [ ] تست Android Chrome با هر دو حالت فعال و غیرفعال `Remove animations`؛ در هر دو حالت Countdown و خرچ/خروچ باید Motion کامل داشته باشند و Combo در حالت کاهش Motion ثابت دیده شود؛

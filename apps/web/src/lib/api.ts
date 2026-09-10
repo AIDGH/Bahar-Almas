@@ -12,6 +12,10 @@ import type {
 
 const API_BASE = '/api/v1';
 
+let profileCache: Profile | undefined;
+let profileRequest: { revision: number; promise: Promise<Profile> } | undefined;
+let profileCacheRevision = 0;
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -48,16 +52,23 @@ export async function requestOtp(input: {
 }
 
 export async function verifyOtp(mobile: string, code: string) {
-  return request<User>(`${API_BASE}/auth/otp/verify`, {
+  const user = await request<User>(`${API_BASE}/auth/otp/verify`, {
     method: 'POST',
     body: JSON.stringify({ mobile, code }),
   });
+  invalidateProfileCache();
+  return user;
 }
 
 export async function logout() {
-  return request<{ success: boolean }>(`${API_BASE}/auth/logout`, {
-    method: 'POST',
-  });
+  const result = await request<{ success: boolean }>(
+    `${API_BASE}/auth/logout`,
+    {
+      method: 'POST',
+    },
+  );
+  invalidateProfileCache();
+  return result;
 }
 
 export async function getLeaderboard(offset = 0, limit = 10) {
@@ -84,23 +95,59 @@ export async function finishGame(
 }
 
 export async function claimGame(sessionId: string, claimToken: string) {
-  return request<GameResult>(`${API_BASE}/games/${sessionId}/claim`, {
-    method: 'POST',
-    headers: { 'X-Game-Token': claimToken },
-  });
+  const result = await request<GameResult>(
+    `${API_BASE}/games/${sessionId}/claim`,
+    {
+      method: 'POST',
+      headers: { 'X-Game-Token': claimToken },
+    },
+  );
+  invalidateProfileCache();
+  return result;
 }
 
 export async function getProfile(offset = 0, limit = 50) {
-  return request<Profile>(
+  if (offset !== 0 || limit !== 50) {
+    return request<Profile>(
+      `${API_BASE}/profile?limit=${limit}&offset=${offset}`,
+    );
+  }
+  if (profileCache) return profileCache;
+
+  const revision = profileCacheRevision;
+  if (profileRequest?.revision === revision) return profileRequest.promise;
+
+  const promise = request<Profile>(
     `${API_BASE}/profile?limit=${limit}&offset=${offset}`,
-  );
+  )
+    .then((profile) => {
+      if (profileCacheRevision === revision) profileCache = profile;
+      return profile;
+    })
+    .finally(() => {
+      if (profileRequest?.promise === promise) profileRequest = undefined;
+    });
+  profileRequest = { revision, promise };
+  return promise;
+}
+
+export async function prefetchProfile() {
+  await getProfile().then(() => undefined);
 }
 
 export async function updateProfile(displayName: string) {
-  return request<User>(`${API_BASE}/profile`, {
+  const user = await request<User>(`${API_BASE}/profile`, {
     method: 'PATCH',
     body: JSON.stringify({ displayName }),
   });
+  invalidateProfileCache();
+  return user;
+}
+
+export function invalidateProfileCache() {
+  profileCacheRevision += 1;
+  profileCache = undefined;
+  profileRequest = undefined;
 }
 
 export async function getAdminUsers(

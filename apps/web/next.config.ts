@@ -11,8 +11,21 @@ const nextConfig: NextConfig = {
     '10.184.100.185',
     '10.215.216.104',
     '192.168.100.7',
-    '172.20.159.124'
+    '172.20.159.124',
   ],
+  async headers() {
+    return [
+      {
+        source: '/assets/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, stale-while-revalidate=604800',
+          },
+        ],
+      },
+    ];
+  },
   async rewrites() {
     return [
       {

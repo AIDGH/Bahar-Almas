@@ -9,6 +9,7 @@ import {
   getLeaderboard,
   getMe,
   logout,
+  prefetchProfile,
   startGame as createGame,
 } from '@/lib/api';
 import type {
@@ -25,6 +26,12 @@ import { formatScore, Leaderboard } from './leaderboard';
 import { ProfileDialog } from './profile-dialog';
 
 const PENDING_GAME_KEY = 'bahar-almas-pending-game';
+const CRUNCH_ASSET_PATHS = [
+  '/assets/kherech.webp',
+  '/assets/khoroch.webp',
+] as const;
+const retainedCrunchImages: HTMLImageElement[] = [];
+let crunchAssetPromise: Promise<void> | undefined;
 
 type PendingGame = {
   sessionId: string;
@@ -75,7 +82,10 @@ export function CampaignGame() {
 
   useEffect(() => {
     void getMe()
-      .then(setUser)
+      .then((nextUser) => {
+        setUser(nextUser);
+        if (nextUser) void prefetchProfile().catch(() => undefined);
+      })
       .catch(() => setUser(null));
     void getLeaderboard()
       .then((page) => {
@@ -110,6 +120,8 @@ export function CampaignGame() {
       const referralCode = params.get('utm_campaign')?.toUpperCase() ?? '';
       window.setTimeout(() => setInitialReferralCode(referralCode), 0);
     }
+
+    void preloadCrunchAssets();
   }, [refreshLeaderboard]);
 
   useEffect(() => {
@@ -231,6 +243,7 @@ export function CampaignGame() {
           },
         );
         await refreshLeaderboard();
+        void prefetchProfile().catch(() => undefined);
       } catch (claimError) {
         setError(
           `ورود انجام شد، اما ثبت رکورد ناموفق بود: ${messageOf(claimError)}`,
@@ -266,6 +279,7 @@ export function CampaignGame() {
     void music.play().catch(() => undefined);
     void countdownSfx.play().catch(() => undefined);
     try {
+      await preloadCrunchAssets();
       setSession(await createGame());
     } catch (startError) {
       music.pause();
@@ -542,6 +556,7 @@ export function CampaignGame() {
               await registerPendingGame(pendingGame, authenticatedUser);
             } else {
               await refreshLeaderboard();
+              void prefetchProfile().catch(() => undefined);
             }
           }}
         />
@@ -620,4 +635,49 @@ function messageOf(error: unknown): string {
   return error instanceof Error
     ? error.message
     : 'خطای پیش‌بینی‌نشده‌ای رخ داد';
+}
+
+function preloadCrunchAssets(): Promise<void> {
+  if (typeof window === 'undefined') return Promise.resolve();
+  if (crunchAssetPromise) return crunchAssetPromise;
+
+  crunchAssetPromise = Promise.all(
+    CRUNCH_ASSET_PATHS.map(
+      (src) =>
+        new Promise<boolean>((resolve) => {
+          const image = new window.Image();
+          let settled = false;
+          const timeout = window.setTimeout(() => finish(false), 6_000);
+
+          function finish(loaded: boolean) {
+            if (settled) return;
+            settled = true;
+            window.clearTimeout(timeout);
+            resolve(loaded);
+          }
+
+          function decodeAndFinish() {
+            if (typeof image.decode !== 'function') {
+              finish(true);
+              return;
+            }
+            void image
+              .decode()
+              .then(() => finish(true))
+              .catch(() => finish(false));
+          }
+
+          image.decoding = 'async';
+          image.onload = decodeAndFinish;
+          image.onerror = () => finish(false);
+          image.src = src;
+          retainedCrunchImages.push(image);
+          if (image.complete && image.naturalWidth > 0) decodeAndFinish();
+        }),
+    ),
+  ).then((results) => {
+    if (results.some((loaded) => !loaded)) crunchAssetPromise = undefined;
+  });
+
+  return crunchAssetPromise;
 }
